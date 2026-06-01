@@ -1,12 +1,12 @@
-# rental-analyzer
+# 🏠 租房避雷 —— Claude Code 智能租房分析 Skill
 
-> Claude Code 自定义 Skill —— 全国通用租房防坑分析
+> 算钱 · 找硬伤 · 看退路 —— 不打无准备之仗
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## 这个 Skill 做什么
 
-在 Claude Code 中输入 `/rental-analyzer`，上传房源信息，它会帮你：
+在 Claude Code 中输入 `/rental-analyzer`，上传房源信息，它会帮你**避雷**：
 
 - **算钱** —— 全口径月支出（含隐性成本），房租占比评估
 - **找硬伤** —— 一票否决项（隔断 / 发霉 / 朝北 / 商用天价电 / 没房产证）
@@ -75,7 +75,7 @@ Skill 会输出完整分析报告。
 | 👩 性别安全 | 按男女区分安保评估 |
 | 💰 隐性成本 | 水电类型、家电能耗、物业网费、转租成本 |
 | 🔄 转租视角 | 合同 + 同品质房源竞争度 |
-| 🦠 防坑检查 | 隔断房 / 发霉 / 串串房 / 中介识别 |
+| 🦠 避雷检查 | 隔断房 / 发霉 / 串串房 / 中介识别 |
 | 🏙️ 城市提醒 | 南方防霉 / 北方问暖 / 小城市标准不同 |
 
 ## 文件结构
