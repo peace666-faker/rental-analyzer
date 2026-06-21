@@ -1,0 +1,1869 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>🛫 空运出口工作台</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="空运工作台">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1a1a2e">
+<link rel="manifest" href="/air-export-manifest.json">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,'Microsoft YaHei',sans-serif;background:#f5f6f8;color:#2c3e50;min-height:100vh}
+.header{background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;padding:16px 28px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 1px 4px rgba(0,0,0,0.1)}
+.header h1{font-size:19px;font-weight:600;letter-spacing:0.5px}
+.header .date{font-size:12px;color:rgba(255,255,255,0.5)}
+
+/* 统计行 */
+.stats{display:flex;gap:0;padding:14px 24px;background:#fff;border-bottom:1px solid #eee;flex-wrap:wrap}
+.stat{flex:1;min-width:70px;text-align:center;padding:6px 4px}
+.stat .num{font-size:26px;font-weight:700;line-height:1.2}
+.stat .label{font-size:10px;color:#999;margin-top:3px}
+.stat.danger{background:#fff1f0}.stat.danger .num{color:#cf1322}
+.stat.warning{background:#fffbe6}.stat.warning .num{color:#d48806}
+.stat.ok{background:#f6ffed}.stat.ok .num{color:#389e0d}
+.stat.info{background:#e6f7ff}.stat.info .num{color:#1890ff}
+
+/* 紧急条 */
+.alert-bar{margin:12px 24px;padding:12px 16px;border-radius:8px;font-size:14px;display:none}
+.alert-bar.show{display:block}
+.alert-bar.danger{background:#fff1f0;border:1px solid #ffa39e;color:#cf1322}
+.alert-bar.warning{background:#fffbe6;border:1px solid #ffe58f;color:#d48806}
+
+.container{max-width:960px;margin:0 auto;padding:0 24px 100px}
+.section-title{font-size:15px;font-weight:600;margin:26px 0 10px;color:#1a1a2e;display:flex;align-items:center;gap:8px}
+.section-title .count{font-size:12px;color:#aaa;font-weight:400}
+
+/* 今日航班看板 */
+.flight-board{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;margin-bottom:8px}
+.flight-chip{background:#fff;border-radius:8px;padding:10px 14px;box-shadow:0 1px 3px rgba(0,0,0,0.05);border-left:3px solid #e0e0e0;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.flight-chip:hover{box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+.flight-chip.prealert-done{border-left-color:#52c41a;opacity:0.65}
+.flight-chip.prealert-pending{border-left-color:#faad14}
+.flight-chip.prealert-overdue{border-left-color:#cf1322;background:#fffbfb}
+.flight-chip .fc-info{flex:1;min-width:0}
+.flight-chip .fc-mawb{font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.flight-chip .fc-route{font-size:11px;color:#999;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.flight-chip .fc-status{font-size:12px;font-weight:600;white-space:nowrap;margin-left:8px}
+.flight-chip .fc-status.ok{color:#389e0d}
+.flight-chip .fc-status.warn{color:#d48806}
+.flight-chip .fc-status.bad{color:#cf1322}
+
+/* 搜索 */
+.search-bar{position:relative;margin-bottom:14px}
+.search-bar input{width:100%;padding:10px 14px 10px 36px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px;font-family:inherit;background:#fff;transition:border-color 0.15s}
+.search-bar input:focus{border-color:#1890ff;outline:none;box-shadow:0 0 0 3px rgba(24,144,255,0.1)}
+.search-bar .search-icon{position:absolute;left:12px;top:10px;font-size:15px;pointer-events:none;opacity:0.35}
+.search-result-none{text-align:center;padding:20px;color:#aaa;font-size:14px}
+
+
+/* 货单卡片 */
+.shipment-card{background:#fff;border-radius:10px;padding:14px 18px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,0.05);border-left:4px solid #e0e0e0}
+.shipment-card:hover{box-shadow:0 2px 8px rgba(0,0,0,0.07)}
+.shipment-card.urgent{border-left-color:#cf1322;background:#fffbfb}
+.shipment-card.soon{border-left-color:#faad14}
+.shipment-card .card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.shipment-card .mawb{font-size:16px;font-weight:700;color:#1a1a2e}
+.shipment-card .route-line{font-size:12px;color:#888;margin-top:2px}
+.shipment-card .etd-badge{font-size:12px;padding:3px 10px;border-radius:10px;background:#f5f5f5;white-space:nowrap;font-weight:500}
+.shipment-card .etd-badge.today{background:#fef3c7;color:#b45309}
+.shipment-card .etd-badge.past{background:#fee2e2;color:#dc2626}
+
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.8}}
+
+/* 步骤网格（统一大小） */
+.step-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px 12px;margin:10px 0}
+.step-item{display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:6px;cursor:pointer;font-size:13px;border:1px solid #eee;background:#fafafa;user-select:none;transition:all 0.12s}
+.step-item:hover{background:#f0f4ff;border-color:#bfdbfe}
+.step-item.done{color:#aaa;text-decoration:line-through;background:#f6fef6;border-color:#bbf7d0}
+.step-item.done .step-icon{color:#52c41a}
+.step-item .step-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+.step-item .step-label{flex:1;font-size:12px}
+.step-item.prealert-overdue{background:#fef2f2;border-color:#fecaca;color:#dc2626;font-weight:600;animation:pulse 2s ease-in-out infinite}
+.step-item.prealert-overdue .step-icon{color:#dc2626}
+.step-item.prealert-due{background:#fffbeb;border-color:#fde68a;color:#b45309;font-weight:600}
+.step-item.prealert-due .step-icon{color:#f59e0b}
+
+.card-actions{display:flex;gap:8px;margin-top:8px}
+.btn{padding:5px 12px;border-radius:6px;border:1px solid #d9d9d9;background:#fff;cursor:pointer;font-size:12px;font-family:inherit}
+.btn:hover{border-color:#1890ff;color:#1890ff}
+.btn.danger{color:#cf1322;border-color:#ffa39e}.btn.danger:hover{background:#fff1f0}
+.btn.green{color:#389e0d;border-color:#b7eb8f}.btn.green:hover{background:#f6ffed}
+.btn.blue{color:#1890ff;border-color:#91d5ff}.btn.blue:hover{background:#e6f7ff}
+
+.add-btn{display:block;width:100%;padding:12px;border:2px dashed #d0d5dd;border-radius:8px;background:#fafbfc;cursor:pointer;font-size:14px;color:#888;margin-top:10px;font-family:inherit}
+.add-btn:hover{border-color:#1890ff;color:#1890ff;background:#e6f7ff}
+
+/* 录入操作区 */
+.entry-actions{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+.entry-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:14px 20px;border-radius:10px;cursor:pointer;font-size:15px;font-family:inherit;font-weight:600;transition:all 0.15s;text-align:center;border:none}
+.entry-btn-primary{flex:2;min-width:180px;background:#1a1a2e;color:#fff;border:none}
+.entry-btn-primary:hover{background:#2d2d4a;transform:translateY(-1px);box-shadow:0 4px 12px rgba(26,26,46,0.25)}
+.entry-btn-secondary{flex:1.5;min-width:140px;background:#fff;color:#1a1a2e;border:2px solid #1a1a2e}
+.entry-btn-secondary:hover{background:#f8f8ff;border-color:#2d2d4a;transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,0.08)}
+.entry-btn-mini{flex:0.8;min-width:100px;background:none;color:#aaa;border:1px dashed #d0d5dd;font-size:12px;font-weight:400;padding:10px 12px}
+.entry-btn-mini:hover{color:#666;border-color:#999;background:#fafafa}
+
+/* 待办 */
+.todo-section{background:#fff;border-radius:10px;padding:14px 18px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+.todo-section h3{font-size:14px;margin-bottom:6px}
+.todo-input-row{display:flex;gap:6px;margin-bottom:6px}
+.todo-input-row input{flex:1;padding:7px 10px;border:1px solid #d9d9d9;border-radius:6px;font-size:13px;font-family:inherit}
+.todo-input-row input:focus{border-color:#1890ff;outline:none}
+.todo-input-row button{padding:7px 14px;border-radius:6px;background:#1890ff;color:#fff;border:none;cursor:pointer;font-size:12px;white-space:nowrap;font-family:inherit}
+.todo-item{display:flex;align-items:center;gap:6px;padding:4px 0;cursor:pointer;font-size:13px}
+.todo-item.done{color:#aaa;text-decoration:line-through}
+.todo-item .todo-del{margin-left:auto;background:none;border:none;color:#ddd;cursor:pointer;font-size:14px}
+.todo-item .todo-del:hover{color:#cf1322}
+.todo-done-section{margin-top:6px;padding-top:6px;border-top:1px dashed #e8e8e8}
+.todo-done-header{font-size:11px;color:#aaa;cursor:pointer;user-select:none}
+.todo-done-list{display:none}.todo-done-list.show{display:block}
+.todo-done-item{font-size:12px;color:#aaa;text-decoration:line-through;padding:2px 0}
+.clear-done{font-size:10px;color:#ccc;cursor:pointer;background:none;border:none;font-family:inherit}
+.clear-done:hover{color:#cf1322}
+
+/* 定期任务 */
+.recurring-card{background:#fff;border-radius:10px;padding:10px 16px;margin-bottom:6px;box-shadow:0 1px 4px rgba(0,0,0,0.06);display:flex;justify-content:space-between;align-items:center;border-left:4px solid #722ed1}
+.recurring-card.today{border-left-color:#cf1322;background:#fffbfb;animation:pulse 2s ease-in-out infinite}
+.recurring-card.done{border-left-color:#52c41a;opacity:0.6}
+.recurring-card .rc-label{font-size:14px;font-weight:600}
+.recurring-card .rc-day{font-size:11px;color:#888}
+.recurring-card .rc-check{font-size:28px;cursor:pointer;user-select:none}
+.recurring-card .rc-delete{background:none;border:none;color:#ccc;cursor:pointer;font-size:12px;margin-left:6px}
+.recurring-card .rc-delete:hover{color:#cf1322}
+.add-recurring{font-size:12px;color:#722ed1;cursor:pointer;background:none;border:none;margin-top:4px;font-family:inherit}
+
+/* 打卡 */
+.clock-section{background:#fff;border-radius:10px;padding:14px 18px;margin-top:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+.clock-section h3{font-size:14px;margin-bottom:8px}
+.clock-row{display:flex;gap:6px}
+.clock-day{flex:1;text-align:center;padding:8px 4px;border-radius:8px;background:#fafafa;cursor:pointer;font-size:12px;border:2px solid transparent}
+.clock-day.today{border-color:#1890ff;background:#e6f7ff}
+.clock-day.done{background:#f6ffed}
+.clock-day .day-label{font-size:10px;color:#888}
+.clock-day .day-check{font-size:18px;margin-top:2px}
+.reminder-row{margin-top:8px;display:flex;align-items:center;gap:6px;font-size:12px;color:#888}
+.reminder-row input{border:1px solid #d9d9d9;border-radius:4px;padding:3px 6px;font-family:inherit;font-size:12px;width:80px}
+.reminder-row input:focus{border-color:#1890ff;outline:none}
+
+/* 弹窗 */
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:100;justify-content:center;align-items:center;backdrop-filter:blur(2px)}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;border-radius:14px;padding:28px;width:440px;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.15)}
+.modal h3{margin-bottom:14px;font-size:17px;color:#1a1a2e}
+.modal label{display:block;font-size:12px;color:#888;margin-bottom:4px;margin-top:12px;font-weight:500}
+.modal input,.modal textarea{width:100%;padding:9px 12px;border:1px solid #e0e0e0;border-radius:6px;font-size:14px;font-family:inherit}
+.modal input:focus,.modal textarea:focus{border-color:#1890ff;outline:none;box-shadow:0 0 0 3px rgba(24,144,255,0.08)}
+.modal textarea{height:180px;font-size:13px}
+.modal .btn-row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+
+/* 提醒遮罩 */
+.reminder-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:999;justify-content:center;align-items:center}
+.reminder-overlay.show{display:flex}
+.reminder-modal{background:#fff;border-radius:16px;padding:32px;text-align:center;max-width:400px;animation:shake .5s ease-in-out}
+.reminder-modal .icon{font-size:56px}
+.reminder-modal h2{font-size:22px;color:#cf1322;margin:10px 0 4px}
+.reminder-modal p{color:#666;margin:8px 0 18px;font-size:14px}
+.reminder-modal .btn-dismiss{padding:10px 40px;border-radius:8px;background:#1890ff;color:#fff;border:none;cursor:pointer;font-size:15px;font-family:inherit}
+.reminder-modal .btn-snooze{padding:6px 20px;border-radius:8px;background:none;border:1px solid #d9d9d9;cursor:pointer;font-size:12px;margin-left:8px;font-family:inherit;color:#888}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-10px)}75%{transform:translateX(10px)}}
+
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:10px 28px;border-radius:24px;font-size:13px;z-index:200;opacity:0;transition:opacity 0.3s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,0.2)}
+.toast.show{opacity:1}
+
+/* ── 宠物系统 ── */
+.pet-widget{position:fixed;bottom:20px;right:20px;background:#fff;border-radius:16px;padding:10px 14px;box-shadow:0 4px 20px rgba(0,0,0,0.12);cursor:pointer;z-index:50;display:flex;align-items:center;gap:10px;transition:all 0.3s;border:2px solid #f0f0f0;user-select:none;overflow:visible}
+.pet-widget:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,0.18);border-color:#ffd700}
+.pet-widget.levelup{animation:petBounce 0.6s ease;border-color:#ffd700;box-shadow:0 0 24px rgba(255,215,0,0.4)}
+.pet-avatar{font-size:36px;line-height:1;transition:transform 0.3s;position:relative}
+.pet-widget:hover .pet-avatar{transform:scale(1.15) rotate(-5deg)}
+.pet-info{min-width:70px}
+.pet-name{font-size:12px;font-weight:600;color:#1a1a2e}
+.pet-level{font-size:11px;color:#888;margin-top:1px}
+.pet-xp-bar{height:4px;background:#f0f0f0;border-radius:2px;margin-top:4px;overflow:hidden}
+.pet-xp-fill{height:100%;background:linear-gradient(90deg,#ffd700,#ff8c00);border-radius:2px;transition:width 0.5s}
+.pet-xp-fill.almost{animation:xpGlow 0.8s ease-in-out infinite}
+@keyframes xpGlow{0%,100%{box-shadow:0 0 4px rgba(255,215,0,0.5)}50%{box-shadow:0 0 12px rgba(255,140,0,0.9)}}
+
+/* ── 待机动画 ── */
+@keyframes petFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes petWiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-10deg)}75%{transform:rotate(10deg)}}
+@keyframes petSpin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+@keyframes petHop{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes petPeek{0%,100%{transform:rotate(0)}30%{transform:rotate(-18deg)}70%{transform:rotate(18deg)}}
+@keyframes petTilt{0%,100%{transform:rotate(0)}50%{transform:rotate(6deg)}}
+@keyframes petBounce{0%,100%{transform:translateY(0)}30%{transform:translateY(-14px)}50%{transform:translateY(0)}70%{transform:translateY(-7px)}}
+
+.pet-widget.floating .pet-avatar{animation:petFloat 3.2s ease-in-out infinite}
+.pet-widget.wiggling .pet-avatar{animation:petWiggle 0.45s ease-in-out}
+.pet-widget.spinning .pet-avatar{animation:petSpin 0.55s ease-in-out}
+.pet-widget.hopping .pet-avatar{animation:petHop 0.35s ease-in-out}
+.pet-widget.peeking .pet-avatar{animation:petPeek 0.7s ease-in-out}
+.pet-widget.tilting .pet-avatar{animation:petTilt 4.5s ease-in-out infinite}
+
+/* ── 宠物睡眠 ── */
+.pet-widget.sleeping .pet-avatar{opacity:0.65;transform:scale(0.88) rotate(-8deg);animation:petFloat 6s ease-in-out infinite}
+.pet-widget.sleeping .pet-name{color:#bbb}
+.pet-widget.sleeping{border-color:#e8e8e8;background:#fcfcfc}
+.pet-zzz{position:fixed;pointer-events:none;font-size:16px;z-index:52;animation:zzzFloat 1.8s ease-out forwards}
+@keyframes zzzFloat{0%{opacity:0;transform:translate(0,0) scale(0.5)}30%{opacity:0.8;transform:translate(8px,-12px) scale(1)}100%{opacity:0;transform:translate(16px,-30px) scale(1.4)}}
+
+/* ── 气泡 ── */
+.pet-bubble{position:fixed;background:#1a1a2e;color:#fff;padding:7px 14px;border-radius:16px;font-size:11px;pointer-events:none;z-index:51;white-space:nowrap;animation:bubblePop 3.5s ease-out forwards;opacity:0;max-width:220px;white-space:normal;text-align:center;line-height:1.5}
+.pet-bubble::after{content:'';position:absolute;bottom:-6px;right:18px;width:12px;height:12px;background:#1a1a2e;border-radius:3px;transform:rotate(45deg)}
+@keyframes bubblePop{0%{opacity:0;transform:translateY(10px) scale(0.8)}15%{opacity:1;transform:translateY(0) scale(1)}80%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-6px) scale(0.85)}}
+
+/* ── 粒子特效 ── */
+.pet-particle{position:fixed;pointer-events:none;z-index:53;font-size:18px;animation:sparkleBurst 0.9s ease-out forwards}
+@keyframes sparkleBurst{0%{opacity:1;transform:translate(0,0) scale(0)}60%{opacity:0.8;transform:translate(var(--dx),var(--dy)) scale(1.4)}100%{opacity:0;transform:translate(var(--dx2),var(--dy2)) scale(0.3)}}
+
+/* ── 经验浮动 ── */
+.xp-float{position:fixed;pointer-events:none;z-index:200;font-weight:700;font-size:16px;animation:xpFly 1.4s ease-out forwards}
+@keyframes xpFly{0%{opacity:1;transform:translateY(0) scale(1)}60%{opacity:1;transform:translateY(-50px) scale(1.3)}100%{opacity:0;transform:translateY(-80px) scale(0.8)}}
+
+/* ── 详情弹窗 ── */
+.pet-detail-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:150;justify-content:center;align-items:center}
+.pet-detail-overlay.show{display:flex}
+.pet-detail{background:#fff;border-radius:20px;padding:28px;text-align:center;max-width:360px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.2)}
+.pet-detail .big-avatar{font-size:72px;line-height:1;transition:transform 0.3s;animation:petFloat 3s ease-in-out infinite}
+.pet-detail .big-avatar:hover{transform:scale(1.1);animation:none}
+.pet-detail .pet-title{font-size:20px;font-weight:700;color:#1a1a2e;margin:8px 0 2px}
+.pet-detail .pet-rank{font-size:13px;color:#888;margin-bottom:2px}
+.pet-detail .pet-personality{font-size:12px;color:#aaa;font-style:italic;margin-bottom:6px}
+.pet-detail .pet-species-tag{font-size:11px;font-weight:600;margin-bottom:6px}
+.pet-detail .species-selector{display:flex;gap:8px;justify-content:center;margin:10px 0 6px}
+.pet-detail .species-option{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 14px;border-radius:12px;cursor:pointer;border:2px solid #e8e8e8;background:#fafafa;transition:all 0.2s;user-select:none}
+.pet-detail .species-option:hover{border-color:#ccc;background:#f5f5f5;transform:translateY(-1px)}
+.pet-detail .species-option.selected{border-color:#ffb6c1;background:#fff5f5;box-shadow:0 2px 8px rgba(255,182,193,0.25)}
+.pet-detail .species-option .so-emoji{font-size:24px;line-height:1}
+.pet-detail .species-option .so-label{font-size:10px;color:#888;font-weight:500}
+.pet-detail .species-option.selected .so-label{color:#d4687c}
+.pet-detail .detail-xp-bar{height:8px;background:#f0f0f0;border-radius:4px;margin:12px 0;overflow:hidden}
+.pet-detail .detail-xp-fill{height:100%;background:linear-gradient(90deg,#ffd700,#ff8c00);border-radius:4px;transition:width 0.5s}
+.pet-detail .xp-text{font-size:12px;color:#999}
+.pet-detail .evolution-chain{font-size:20px;margin:10px 0;letter-spacing:4px;line-height:1.8}
+.pet-detail .btn-row{margin-top:16px}
+.pet-detail input{padding:8px 12px;border:1px solid #e0e0e0;border-radius:6px;font-size:14px;text-align:center;width:160px;font-family:inherit}
+.pet-detail input:focus{border-color:#ffd700;outline:none}
+
+.completed-section .shipment-card{opacity:0.5;border-left-color:#52c41a}
+.completed-section .shipment-card:hover{opacity:0.8}
+#completedList.collapsed{display:none}
+.completed-toggle{cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px}
+.completed-toggle:hover{opacity:0.75}
+.completed-toggle .toggle-arrow{font-size:11px;color:#aaa;transition:transform 0.15s}
+.edit-input{width:100%;padding:4px 8px;border:1px solid #1890ff;border-radius:4px;font-size:13px;font-family:inherit}
+.edit-input:focus{outline:none;box-shadow:0 0 0 2px rgba(24,144,255,0.2)}
+.backup-bar{display:flex;gap:6px;margin-bottom:16px;justify-content:flex-end}
+.backup-btn{padding:4px 10px;border-radius:4px;border:1px solid #e0e0e0;background:#fff;cursor:pointer;font-size:11px;color:#aaa;font-family:inherit;transition:all 0.12s}
+.backup-btn:hover{border-color:#1890ff;color:#1890ff}
+.sync-btn{color:#8b5cf6;border-color:#c4b5fd;font-weight:600}
+.sync-btn:hover{border-color:#7c3aed;color:#7c3aed;background:#faf5ff}
+.empty-state{text-align:center;padding:32px 16px;color:#aaa}
+.empty-state .empty-icon{font-size:40px;margin-bottom:8px}
+.empty-state p{font-size:14px;margin:4px 0}
+.empty-state .guide{font-size:12px;color:#ccc;margin-top:8px;line-height:1.8}
+
+/* ── 手机端适配 ── */
+@media (max-width: 768px){
+  .header{padding:12px 16px;flex-direction:column;align-items:flex-start;gap:4px}
+  .header h1{font-size:17px}
+  .container{padding:0 12px 80px}
+  .stats{flex-wrap:wrap;padding:10px 12px;gap:2px}
+  .stat{flex:0 0 calc(50% - 4px);min-width:0;padding:8px 4px}
+  .stat .num{font-size:22px}
+  .stat .label{font-size:10px}
+  .section-title{font-size:14px;margin:20px 0 8px}
+  .flight-board{grid-template-columns:1fr;gap:6px}
+  .shipment-card{padding:12px 14px}
+  .shipment-card .mawb{font-size:15px}
+  .step-grid{grid-template-columns:1fr 1fr;gap:4px 8px}
+  .step-item{padding:8px 6px;font-size:12px}
+  .card-actions{flex-wrap:wrap;gap:4px}
+  .card-actions .btn{padding:6px 10px;font-size:11px}
+  .modal{width:calc(100vw - 32px);max-height:90vh;padding:20px;border-radius:12px}
+  .modal h3{font-size:16px}
+  .modal input,.modal textarea{font-size:16px}
+  .entry-actions{flex-direction:column}
+  .entry-btn-primary,.entry-btn-secondary,.entry-btn-mini{flex:1;min-width:0;padding:16px}
+  .entry-btn{font-size:16px}
+  .search-bar input{font-size:16px;padding:12px 14px 12px 38px}
+  .btn{font-size:13px;padding:8px 16px}
+  .add-btn{padding:16px;font-size:16px}
+  .backup-bar{justify-content:center;flex-wrap:wrap}
+  .clock-row{overflow-x:auto;gap:4px}
+  .clock-day{padding:10px 6px;font-size:13px}
+  .todo-input-row input{font-size:16px;padding:10px}
+  .todo-input-row button{padding:10px 16px;font-size:13px}
+  .recurring-card{padding:12px 14px}
+  .recurring-card .rc-label{font-size:13px}
+  .reminder-modal{max-width:90vw;padding:24px}
+  .alert-bar{margin:8px 12px;font-size:13px}
+  .toast{font-size:12px;padding:8px 20px;bottom:16px}
+  .pet-widget{bottom:12px;right:12px;padding:8px 10px;gap:6px;border-radius:12px}
+  .pet-avatar{font-size:28px}
+  .pet-name{font-size:11px}
+  .pet-level{font-size:10px}
+  .pet-bubble{font-size:10px;max-width:160px}
+  .pet-detail{padding:20px;max-width:300px}
+  .pet-detail .big-avatar{font-size:56px}
+}
+
+@media (max-width: 400px){
+  .step-grid{grid-template-columns:1fr}
+  .stats{gap:0}
+  .stat{flex:0 0 50%}
+  .stat .num{font-size:20px}
+  .header h1{font-size:16px}
+  .card-top{flex-direction:column;gap:4px}
+  .flight-chip{flex-direction:column;align-items:flex-start;gap:4px}
+  .flight-chip .fc-status{margin-left:0}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🛫 空运出口工作台</h1>
+  <span class="date" id="todayDate"></span>
+</div>
+
+<div class="stats">
+  <div class="stat info" id="statToday">    <div class="num">0</div><div class="label">今日起飞</div></div>
+  <div class="stat warning" id="statActive"> <div class="num">0</div><div class="label">进行中</div></div>
+  <div class="stat danger" id="statUrgent"> <div class="num">0</div><div class="label">🔴 预报逾期</div></div>
+  <div class="stat ok" id="statPreAlert"><div class="num">0</div><div class="label">今日已发预报</div></div>
+  <div class="stat" id="statClock">        <div class="num">—</div><div class="label">今日打卡</div></div>
+</div>
+
+<div class="alert-bar danger" id="alertUrgent"></div>
+
+<div class="container">
+
+  <!-- 今日航班看板 -->
+  <div class="section-title">📋 今日航班看板 <span class="count" id="boardSubtitle"></span></div>
+  <div class="flight-board" id="flightBoard"></div>
+
+  <!-- 搜索 -->
+  <div class="search-bar">
+    <span class="search-icon">🔍</span>
+    <input id="searchInput" placeholder="搜索提单号、航线、航班号...   |   快速添加：输入 提单号 航线 ETD 回车即可" oninput="doSearch()" onkeydown="quickAdd(event)">
+  </div>
+
+  <div class="backup-bar">
+    <button class="backup-btn" onclick="exportData()" title="备份所有数据到文件">💾 备份</button>
+    <button class="backup-btn" onclick="importData()" title="从备份文件恢复">📥 恢复</button>
+    <button class="backup-btn" onclick="resetAllData()" title="清空所有数据重新开始">🗑 重置</button>
+    <button class="backup-btn sync-btn" onclick="syncToClipboard()" title="复制为 Markdown 粘贴到 Chat 或 shipments.md">📋 同步</button>
+  </div>
+
+  <!-- 进行中 -->
+  <div class="section-title">🟡 进行中 <span class="count" id="activeCount"></span></div>
+  <div id="activeList"></div>
+  <button class="add-btn" onclick="showAddModal()">＋ 新建一票</button>
+  <div class="entry-actions">
+    <label class="entry-btn entry-btn-primary">
+      📷 拍照 / 图片录入
+      <input type="file" accept="image/*" capture="environment" onchange="ocrImage(event)" style="display:none">
+    </label>
+    <button class="entry-btn entry-btn-secondary" onclick="pasteOcrText()">📝 粘贴OCR文本</button>
+    <button class="entry-btn entry-btn-mini" onclick="ocrClipboard()">📋 从剪贴板粘贴截图</button>
+  </div>
+
+  <!-- 已完成 -->
+  <div class="section-title completed-section completed-toggle" id="completedTitle" onclick="toggleCompleted()">🟢 已完成 <span class="count" id="completedCount"></span> <span class="toggle-arrow" id="completedArrow">▾</span></div>
+  <div class="completed-section" id="completedList"></div>
+
+  <!-- 今日待办 -->
+  <div class="todo-section">
+    <h3>📝 今日待办</h3>
+    <div class="todo-input-row">
+      <input id="todoInput" placeholder="输入待办，回车添加..." onkeydown="if(event.key==='Enter')addTodo()">
+      <button onclick="addTodo()">添加</button>
+    </div>
+    <div id="todoList"></div>
+  </div>
+
+  <!-- 定期任务 -->
+  <div class="section-title">🔄 定期任务 <span class="count" id="recurringCount"></span></div>
+  <div id="recurringList"></div>
+
+  <!-- 打卡 -->
+  <div class="clock-section">
+    <h3>⏰ 本周下班打卡</h3>
+    <div class="clock-row" id="clockRow"></div>
+    <div class="reminder-row">
+      🔔 <input type="time" id="reminderTime" onchange="saveReminder()">
+      <span id="reminderStatus" style="color:#389e0d;display:none">提醒已开启</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- 宠物挂件 -->
+<div class="pet-widget" id="petWidget" onclick="showPetDetail()" title="点我查看详情！">
+  <div class="pet-avatar" id="petAvatar">🥚</div>
+  <div class="pet-info">
+    <div class="pet-name" id="petNameDisplay">货运灵蛋</div>
+    <div class="pet-level">Lv.<span id="petLevel">1</span></div>
+    <div class="pet-xp-bar"><div class="pet-xp-fill" id="petXpFill" style="width:0%"></div></div>
+  </div>
+</div>
+
+<!-- 宠物详情弹窗 -->
+<div class="pet-detail-overlay" id="petDetailOverlay" onclick="if(event.target===this)closePetDetail()">
+  <div class="pet-detail">
+    <div class="big-avatar" id="detailAvatar">🥚</div>
+    <div class="pet-title" id="detailTitle">货运灵蛋</div>
+    <div class="pet-rank" id="detailRank">新手货代</div>
+    <div class="pet-species-tag" id="detailSpeciesTag">🐱 猫咪系 · 可爱灵动</div>
+    <div class="pet-personality" id="detailPersonality">充满可能，等待孵化...</div>
+
+    <!-- 物种选择 -->
+    <div class="species-selector">
+      <div class="species-option selected" data-species="cat" onclick="switchSpecies('cat')" title="猫咪系 — 可爱灵动">
+        <span class="so-emoji">🐱</span><span class="so-label">猫咪</span>
+      </div>
+      <div class="species-option" data-species="dog" onclick="switchSpecies('dog')" title="狗狗系 — 忠诚活力">
+        <span class="so-emoji">🐶</span><span class="so-label">狗狗</span>
+      </div>
+      <div class="species-option" data-species="bunny" onclick="switchSpecies('bunny')" title="兔兔系 — 软萌治愈">
+        <span class="so-emoji">🐰</span><span class="so-label">兔兔</span>
+      </div>
+    </div>
+
+    <div class="detail-xp-bar"><div class="detail-xp-fill" id="detailXpFill"></div></div>
+    <div class="xp-text"><span id="detailXp">0</span> / <span id="detailXpNext">100</span> XP → Lv.<span id="detailNextLevel">2</span></div>
+    <div class="evolution-chain" id="evolutionChain"></div>
+    <input id="petNameInput" placeholder="给你的宠物取名..." onchange="renamePet(this.value)" maxlength="8">
+    <div class="btn-row">
+      <button class="btn" onclick="closePetDetail()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 新增弹窗 -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <h3>🛫 新建一票</h3>
+    <label>主提单号 MAWB *</label>
+    <input id="addMawb" placeholder="999-12345678">
+    <label>航线（起运港 → 目的港）</label>
+    <input id="addRoute" placeholder="SZX → LAX">
+    <label>航班号</label>
+    <input id="addFlight" placeholder="CA1234">
+    <label>ETD 起飞日期</label>
+    <input id="addEtd" type="date">
+    <label>备注</label>
+    <input id="addNotes" placeholder="客户名、特殊要求等">
+    <div class="btn-row">
+      <button class="btn" onclick="closeAddModal()">取消</button>
+      <button class="btn blue" style="padding:8px 20px;font-size:14px" onclick="addShipment()">创建</button>
+    </div>
+  </div>
+</div>
+
+<!-- 预报内容弹窗 -->
+<div class="modal-overlay" id="preAlertModal">
+  <div class="modal">
+    <h3>📋 预报内容</h3>
+    <textarea id="preAlertText" readonly></textarea>
+    <div class="btn-row">
+      <button class="btn" onclick="closePreAlertModal()">关闭</button>
+      <button class="btn blue" style="padding:8px 20px;font-size:14px" onclick="copyPreAlert()">📋 一键复制到QQ</button>
+    </div>
+  </div>
+</div>
+
+<!-- 下班遮罩 -->
+<div class="reminder-overlay" id="reminderOverlay">
+  <div class="reminder-modal">
+    <div class="icon">⏰</div>
+    <h2>该下班打卡了！</h2>
+    <p>确认今天工作全部完成，<br>预报都发了、步骤都勾了，再打卡下班。</p>
+    <div>
+      <button class="btn-dismiss" onclick="dismissReminder()">✅ 打卡下班</button>
+      <button class="btn-snooze" onclick="snoozeReminder()">5分钟后提醒</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+
+<script>
+// ── 数据层 ──
+const STEPS = [
+  { key:'customs', label:'报关' },
+  { key:'docs', label:'制单' },
+  { key:'submit', label:'交单' },
+  { key:'trackFlight', label:'跟航班' },
+  { key:'psr', label:'催收PSR' },
+  { key:'preAlert', label:'发预报' },
+  { key:'customerNotice', label:'通知客户' },
+  { key:'settlement', label:'结算' },
+];
+
+const DATA_VERSION = 2; // 升级此值 + 添加迁移逻辑即可安全更新，不影响localStorage
+
+function migrateData(data, fromVersion){
+  if(!fromVersion || fromVersion < 2){
+    // V2: 新增「催收PSR」步骤
+    const allSteps = STEPS.map(s=>s.key);
+    for(const s of data.shipments||[]){
+      for(const k of allSteps){ if(!(k in (s.steps||{}))) s.steps[k] = false; }
+    }
+  }
+  // 以后新增步骤：
+  // if(fromVersion < 3){ ... }
+  data._version = DATA_VERSION;
+  return data;
+}
+
+function getData(){
+  const raw = localStorage.getItem('air-export-data');
+  const defaults = {
+    shipments: [],
+    clockOuts: {},
+    todos: {},
+    recurringTasks: [
+      { id:'hk-monday', label:'每周一发HK预报', dayOfWeek:1, weekChecked:{} }
+    ],
+    _version: DATA_VERSION
+  };
+  if(!raw) return defaults;
+  let data;
+  try { data = JSON.parse(raw); } catch(e){ return defaults; }
+  if(!data.todos) data.todos = {};
+  if(!data.recurringTasks) data.recurringTasks = defaults.recurringTasks;
+  if((data._version||0) < DATA_VERSION) data = migrateData(data, data._version||0);
+  return data;
+}
+function saveData(d){ localStorage.setItem('air-export-data', JSON.stringify(d)); }
+function getTodayKey(){ return new Date().toISOString().slice(0,10); }
+function getWeekKey(){
+  const d = new Date();
+  const start = new Date(d); start.setDate(d.getDate() - d.getDay() + 1);
+  return start.toISOString().slice(0,10);
+}
+function getWeekday(){ return new Date().getDay(); }
+let completedCollapsed = false;
+let _modalOriginalHTML = '';
+
+// ═══════════════════════════════════════════
+//  🐾 宠物系统 V3 — 三物种 × 十级进化，可爱优先
+//     待机动作 / 气泡 / 情绪 / 睡眠 / 粒子
+// ═══════════════════════════════════════════
+const PET_SPECIES = {
+  cat: {
+    id:'cat', name:'🐱 猫咪系', tag:'可爱灵动', color:'#ffb6c1', bg:'#fff5f5',
+    forms: [
+      { level:1, emoji:'🥚', name:'猫蛋蛋',   rank:'实习货代', xp:0,    personality:'毛茸茸的预感…这颗蛋会孵出什么？' },
+      { level:2, emoji:'🐣', name:'奶猫团子', rank:'初级货代', xp:100,  personality:'刚破壳的小奶猫，走路还摇摇晃晃，但已经会用脑袋蹭你的手了～' },
+      { level:3, emoji:'🐱', name:'小橘猫',   rank:'熟练货代', xp:250,  personality:'圆滚滚的小橘，对每一张报关单都充满好奇，爪子轻轻地拨弄着单据' },
+      { level:4, emoji:'😺', name:'笑笑猫',   rank:'资深货代', xp:500,  personality:'总是笑眯眯的，连客户打电话来催货都生不起气来' },
+      { level:5, emoji:'😸', name:'开心果',   rank:'高级货代', xp:850,  personality:'预报发得越多它越开心，尾巴翘得老高，眼睛眯成了月牙' },
+      { level:6, emoji:'🐈', name:'优雅猫',   rank:'精英货代', xp:1300, personality:'身姿优雅步伐轻盈，制单零差错，连海关看了都夸' },
+      { level:7, emoji:'😻', name:'迷恋猫',   rank:'首席货代', xp:1900, personality:'眼里满是对货代事业的热爱，看到完美预报会幸福得打呼噜' },
+      { level:8, emoji:'🐈‍⬛', name:'暗夜猫',   rank:'夜班主管', xp:2700, personality:'深夜跟航班的最佳搭档，眼睛在黑暗中发光，从不漏掉一票预报' },
+      { level:9, emoji:'🐆', name:'闪电豹',   rank:'货运总监', xp:3700, personality:'速度与精准的化身，结算比豹还快，对手只能看到残影' },
+      { level:10, emoji:'🦁', name:'荣耀狮王', rank:'货代之神', xp:5000, personality:'万兽之王，货运界的传说。站在顶点的你，早已无敌。' },
+    ]
+  },
+  dog: {
+    id:'dog', name:'🐶 狗狗系', tag:'忠诚活力', color:'#ffd699', bg:'#fffdf5',
+    forms: [
+      { level:1, emoji:'🥚', name:'汪蛋蛋',   rank:'实习货代', xp:0,    personality:'里面传来微弱的汪汪声…尾巴在蛋壳里摇来摇去' },
+      { level:2, emoji:'🐣', name:'奶汪团子', rank:'初级货代', xp:100,  personality:'刚孵出来的小狗，尾巴摇得像直升机，见谁都想扑上去舔' },
+      { level:3, emoji:'🐶', name:'小柴犬',   rank:'熟练货代', xp:250,  personality:'精力充沛，每次看到新单据都兴奋得原地转圈，耳朵一抖一抖的' },
+      { level:4, emoji:'🐕', name:'金毛暖男', rank:'资深货代', xp:500,  personality:'忠诚可靠的大暖男，对每一票货都认真负责，客户的最爱' },
+      { level:5, emoji:'🦮', name:'导盲专家', rank:'高级货代', xp:850,  personality:'指引每一票货安全抵达目的港，从不出错，稳如泰山' },
+      { level:6, emoji:'🐩', name:'贵宾绅士', rank:'精英货代', xp:1300, personality:'优雅精致，连预报邮件都写得漂漂亮亮像艺术品' },
+      { level:7, emoji:'🐕‍🦺', name:'服务之星', rank:'首席货代', xp:1900, personality:'客户服务满分好评如潮，每次回复都是秒回，服务界的MVP' },
+      { level:8, emoji:'🦊', name:'灵狐军师', rank:'航线专家', xp:2700, personality:'聪明绝顶的航线规划天才，总能找到最优路线，运费最低速度最快' },
+      { level:9, emoji:'🐺', name:'雪狼领袖', rank:'团队领袖', xp:3700, personality:'一声长啸震慑全场，带领团队无往不利，对手闻风丧胆' },
+      { level:10, emoji:'🐉', name:'苍穹翔龙', rank:'货代之神', xp:5000, personality:'超越凡尘，化身为龙！翱翔于全球航线之上，俯瞰整个货运世界。' },
+    ]
+  },
+  bunny: {
+    id:'bunny', name:'🐰 兔兔系', tag:'软萌治愈', color:'#f0d0d0', bg:'#fffafa',
+    forms: [
+      { level:1, emoji:'🥚', name:'兔蛋蛋',   rank:'实习货代', xp:0,    personality:'一颗软软的蛋，散发着淡淡的奶香…里面有东西在轻轻跳动' },
+      { level:2, emoji:'🐣', name:'奶兔团子', rank:'初级货代', xp:100,  personality:'刚孵出的小兔子，耳朵软软的垂下来，像一团会动的棉花糖' },
+      { level:3, emoji:'🐰', name:'小白兔',   rank:'熟练货代', xp:250,  personality:'雪白柔软的小天使，蹦蹦跳跳帮你整理文件，累了就窝在你手边' },
+      { level:4, emoji:'🐹', name:'仓鼠球',   rank:'资深货代', xp:500,  personality:'圆滚滚的小仓鼠，腮帮子里塞满了报关单，跑轮子上都在想着预报' },
+      { level:5, emoji:'🐿️', name:'花栗鼠',   rank:'高级货代', xp:850,  personality:'机灵可爱的小家伙，预报提醒从不遗漏，还会往你口袋里塞坚果' },
+      { level:6, emoji:'🐨', name:'考拉宝宝', rank:'精英货代', xp:1300, personality:'虽然看起来总在睡觉，但报关从没漏过一票——闭着眼睛都能做' },
+      { level:7, emoji:'🐼', name:'国宝熊猫', rank:'首席货代', xp:1900, personality:'国宝级货代，黑白分明清清楚楚，客户说跟你合作是"国家级享受"' },
+      { level:8, emoji:'🐻‍❄️', name:'北极熊',   rank:'冰霜主管', xp:2700, personality:'冷静沉着如极地冰川，再大的压力下依然优雅从容，稳得一批' },
+      { level:9, emoji:'🦝', name:'小浣熊',   rank:'全能总监', xp:3700, personality:'手脚灵活到不可思议，什么复杂单据都能搞定，洗手洗得比谁都干净' },
+      { level:10, emoji:'🦄', name:'圣光独角兽', rank:'货代之神', xp:5000, personality:'纯洁神圣的终极形态，光芒照亮整个货运界。传说，终于成真。' },
+    ]
+  }
+};
+const DEFAULT_SPECIES = 'cat';
+
+// ── 气泡语料库 ──
+const PET_QUOTES = {
+  morning:  ['☀️ 早上好！今天也要元气满满～','🛫 早起的鸟儿有货发！','📋 先看看今天有几票要飞的','💪 新的一天，新的挑战！','🔍 检查一下今天的ETD'],
+  afternoon:['📦 预报都发了吗？别漏了！','✈️ 下午的航班该跟进了～','☕ 累了就喝杯咖啡吧','🔍 再检查一遍逾期预报','📝 报关单都交了吗？'],
+  evening:  ['⏰ 快到下班时间了！','🌙 最后检查一遍预报...','✅ 今天的任务都完成了吗？','🏠 别太晚，该打卡了','💤 忙完就早点休息～'],
+  idle:     ['🐾 戳戳我会变好运哦','💡 搜索框输入 单号 航线 日期 回车=快速建单','📸 拍照也能录入单据','🔄 定期任务别忘了check','🎯 完成8个步骤就能升级','💬 点我可以自定义名字','✨ 预报发得越多我越强','🍀 今天运势：宜发预报，忌拖延','📊 多完成步骤能更快进化！','🔄 点详情可以换物种哦～'],
+  nearLevel:['⚡ 还差一点就升级了！','🔥 快要进化了，继续冲！','🌟 离下一形态就差几步','💫 经验条快满了！加油！'],
+};
+
+function getTimeOfDay(){
+  const h = new Date().getHours();
+  if(h >= 6 && h < 12) return 'morning';
+  if(h >= 12 && h < 18) return 'afternoon';
+  return 'evening';
+}
+
+function randQuote(pool){ const p = PET_QUOTES[pool]||PET_QUOTES.idle; return p[Math.floor(Math.random()*p.length)]; }
+
+// ── 数据层 ──
+function getPetData(){
+  const raw = localStorage.getItem('air-export-pet');
+  if(raw){ try{ return JSON.parse(raw); }catch(e){} }
+  return { name:'', xp:0, species:DEFAULT_SPECIES, lastInteraction:0 };
+}
+function savePetData(pd){ localStorage.setItem('air-export-pet', JSON.stringify(pd)); }
+
+function getPetSpecies(pd){
+  const s = pd?.species || DEFAULT_SPECIES;
+  return PET_SPECIES[s] || PET_SPECIES[DEFAULT_SPECIES];
+}
+
+function getPetForms(pd){ return getPetSpecies(pd).forms; }
+
+function getPetLevel(xp, forms){
+  if(!forms){ const pd = getPetData(); forms = getPetForms(pd); }
+  let lv = 1;
+  for(let i = forms.length-1; i >= 0; i--){
+    if(xp >= forms[i].xp){ lv = forms[i].level; break; }
+  }
+  return lv;
+}
+
+function getPetForm(level, forms){
+  if(!forms){ const pd = getPetData(); forms = getPetForms(pd); }
+  return forms.find(f => f.level === level) || forms[0];
+}
+
+function getNextForm(level, forms){
+  if(!forms){ const pd = getPetData(); forms = getPetForms(pd); }
+  return forms.find(f => f.level === level + 1) || null;
+}
+
+// ── 粒子爆炸 ──
+function spawnParticles(emoji, count){
+  const widget = document.getElementById('petWidget');
+  const rect = widget.getBoundingClientRect();
+  const cx = rect.left + rect.width/2;
+  const cy = rect.top + rect.height/2;
+  const symbols = ['✨','⭐','💫','🌟','💥','🔥','🎉','💖'];
+  for(let i = 0; i < count; i++){
+    const p = document.createElement('div');
+    p.className = 'pet-particle';
+    p.textContent = symbols[Math.floor(Math.random()*symbols.length)];
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 30 + Math.random() * 60;
+    p.style.left = cx + 'px';
+    p.style.top = cy + 'px';
+    p.style.setProperty('--dx', Math.cos(angle)*dist + 'px');
+    p.style.setProperty('--dy', Math.sin(angle)*dist + 'px');
+    p.style.setProperty('--dx2', Math.cos(angle)*(dist+30) + 'px');
+    p.style.setProperty('--dy2', Math.sin(angle)*(dist+30) + 'px');
+    p.style.animationDuration = (0.6 + Math.random()*0.6) + 's';
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 1000);
+  }
+}
+
+// ── 气泡 ──
+function showPetBubble(text, duration){
+  document.querySelectorAll('.pet-bubble').forEach(b => b.remove());
+  const bubble = document.createElement('div');
+  bubble.className = 'pet-bubble';
+  bubble.textContent = text;
+  const widget = document.getElementById('petWidget');
+  const rect = widget.getBoundingClientRect();
+  bubble.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
+  bubble.style.right = Math.max(4, window.innerWidth - rect.right + rect.width/2 - 60) + 'px';
+  document.body.appendChild(bubble);
+  const dur = duration || 3500;
+  setTimeout(() => { if(bubble.parentNode) bubble.remove(); }, dur);
+}
+
+// ── ZZZ ──
+let _zzzInterval = null;
+function startZzz(){
+  if(_zzzInterval) return;
+  _zzzInterval = setInterval(() => {
+    if(!document.getElementById('petWidget').classList.contains('sleeping')){ stopZzz(); return; }
+    const zzz = document.createElement('div');
+    zzz.className = 'pet-zzz';
+    zzz.textContent = Math.random()>0.5 ? 'Z' : '💤';
+    const widget = document.getElementById('petWidget');
+    const rect = widget.getBoundingClientRect();
+    zzz.style.left = rect.right - 20 + 'px';
+    zzz.style.top = rect.top - 8 + 'px';
+    document.body.appendChild(zzz);
+    setTimeout(() => zzz.remove(), 2000);
+  }, 3000);
+}
+function stopZzz(){
+  if(_zzzInterval){ clearInterval(_zzzInterval); _zzzInterval = null; }
+  document.querySelectorAll('.pet-zzz').forEach(z => z.remove());
+}
+
+// ── 待机行为调度 ──
+let _petIdleTimers = [];
+function clearPetIdle(){
+  _petIdleTimers.forEach(t => clearTimeout(t));
+  _petIdleTimers = [];
+}
+
+function scheduleIdleBehavior(){
+  clearPetIdle();
+  const widget = document.getElementById('petWidget');
+  widget.classList.remove('sleeping','wiggling','spinning','hopping','peeking');
+  stopZzz();
+  widget.classList.add('floating');
+
+  const micros = ['wiggling','spinning','hopping','peeking'];
+  (function loopMicro(){
+    const delay = 10000 + Math.random() * 18000;
+    const t = setTimeout(() => {
+      if(widget.classList.contains('sleeping')){ loopMicro(); return; }
+      const act = micros[Math.floor(Math.random()*micros.length)];
+      widget.classList.add(act);
+      const dur = act==='spinning'?550:act==='peeking'?700:act==='hopping'?350:450;
+      setTimeout(() => widget.classList.remove(act), dur);
+      if(!document.querySelector('.pet-bubble') && Math.random() < 0.25){
+        showPetBubble(randQuote('idle'), 3500);
+      }
+      loopMicro();
+    }, delay);
+    _petIdleTimers.push(t);
+  })();
+
+  (function loopContext(){
+    const delay = 180000 + Math.random() * 240000;
+    const t = setTimeout(() => {
+      if(widget.classList.contains('sleeping')){ loopContext(); return; }
+      showPetBubble(randQuote(getTimeOfDay()), 4000);
+      loopContext();
+    }, delay);
+    _petIdleTimers.push(t);
+  })();
+
+  (function loopNearLevel(){
+    const t = setTimeout(() => {
+      const pd = getPetData();
+      const forms = getPetForms(pd);
+      const lv = getPetLevel(pd.xp, forms);
+      const nf = getNextForm(lv, forms);
+      if(nf && !widget.classList.contains('sleeping')){
+        const form = getPetForm(lv, forms);
+        const progress = (pd.xp - form.xp) / (nf.xp - form.xp);
+        if(progress >= 0.75 && Math.random() < 0.4){
+          showPetBubble(randQuote('nearLevel'), 3000);
+        }
+      }
+      loopNearLevel();
+    }, 120000);
+    _petIdleTimers.push(t);
+  })();
+
+  const sleepT = setTimeout(() => {
+    const pd = getPetData();
+    const idleMs = Date.now() - (pd.lastInteraction || 0);
+    if(idleMs > 25 * 60 * 1000){
+      widget.classList.add('sleeping');
+      startZzz();
+      showPetBubble('😴 zzz...', 4000);
+    }
+  }, 25 * 60 * 1000);
+  _petIdleTimers.push(sleepT);
+}
+
+function wakePet(){
+  const widget = document.getElementById('petWidget');
+  widget.classList.remove('sleeping');
+  stopZzz();
+  const pd = getPetData();
+  pd.lastInteraction = Date.now();
+  savePetData(pd);
+  scheduleIdleBehavior();
+  if(Math.random() < 0.4){
+    setTimeout(() => showPetBubble(randQuote(getTimeOfDay()), 3000), 600);
+  }
+}
+
+// ── 经验操作 ──
+function addPetXp(amount){
+  const pd = getPetData();
+  const forms = getPetForms(pd);
+  const oldLevel = getPetLevel(pd.xp, forms);
+  pd.xp += amount;
+  pd.lastInteraction = Date.now();
+  const newLevel = getPetLevel(pd.xp, forms);
+  savePetData(pd);
+  showXpFloat(amount);
+  updatePetWidget();
+  wakePet();
+  if(newLevel > oldLevel){
+    setTimeout(() => {
+      const form = getPetForm(newLevel, forms);
+      const widget = document.getElementById('petWidget');
+      widget.classList.add('levelup');
+      spawnParticles(form.emoji, 18);
+      setTimeout(() => widget.classList.remove('levelup'), 600);
+      toast('🎉 升级了！' + form.emoji + ' ' + form.name + '（' + form.rank + '）');
+    }, 800);
+  }
+  return { oldLevel, newLevel, xp: pd.xp };
+}
+
+function showXpFloat(amount){
+  const el = document.createElement('div');
+  el.className = 'xp-float';
+  el.textContent = '+' + amount + ' XP';
+  const widget = document.getElementById('petWidget');
+  const rect = widget.getBoundingClientRect();
+  el.style.left = Math.max(4, rect.left + rect.width/2 - 30) + 'px';
+  el.style.top = Math.max(4, rect.top - 10) + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1500);
+}
+
+function updatePetWidget(){
+  const pd = getPetData();
+  const forms = getPetForms(pd);
+  const level = getPetLevel(pd.xp, forms);
+  const form = getPetForm(level, forms);
+  const nextForm = getNextForm(level, forms);
+  const species = getPetSpecies(pd);
+  document.getElementById('petAvatar').textContent = form.emoji;
+  document.getElementById('petNameDisplay').textContent = pd.name || form.name;
+  document.getElementById('petLevel').textContent = level;
+  const widget = document.getElementById('petWidget');
+  widget.style.borderColor = species.color + '55';
+  const fill = document.getElementById('petXpFill');
+  if(nextForm){
+    const currentXp = pd.xp - form.xp;
+    const neededXp = nextForm.xp - form.xp;
+    const pct = Math.min(100, Math.floor(currentXp / neededXp * 100));
+    fill.style.width = pct + '%';
+    fill.classList.toggle('almost', pct >= 75);
+  } else {
+    fill.style.width = '100%';
+    fill.classList.add('almost');
+  }
+}
+
+function showPetDetail(){
+  const pd = getPetData();
+  const forms = getPetForms(pd);
+  const species = getPetSpecies(pd);
+  const level = getPetLevel(pd.xp, forms);
+  const form = getPetForm(level, forms);
+  const nextForm = getNextForm(level, forms);
+
+  document.getElementById('detailAvatar').textContent = form.emoji;
+  document.getElementById('detailTitle').textContent = pd.name || form.name;
+  document.getElementById('detailRank').textContent = form.rank;
+  document.getElementById('detailPersonality').textContent = form.personality;
+
+  document.getElementById('detailSpeciesTag').textContent = species.name + ' · ' + species.tag;
+  document.getElementById('detailSpeciesTag').style.color = species.color;
+
+  document.querySelectorAll('.species-option').forEach(el => {
+    el.classList.toggle('selected', el.dataset.species === species.id);
+  });
+
+  if(nextForm){
+    const currentXp = pd.xp - form.xp;
+    const neededXp = nextForm.xp - form.xp;
+    document.getElementById('detailXpFill').style.width = Math.min(100, Math.floor(currentXp / neededXp * 100)) + '%';
+    document.getElementById('detailXp').textContent = pd.xp;
+    document.getElementById('detailXpNext').textContent = nextForm.xp;
+    document.getElementById('detailNextLevel').textContent = nextForm.level;
+  } else {
+    document.getElementById('detailXpFill').style.width = '100%';
+    document.getElementById('detailXp').textContent = pd.xp;
+    document.getElementById('detailXpNext').textContent = '—';
+    document.getElementById('detailNextLevel').textContent = 'MAX';
+  }
+
+  document.getElementById('evolutionChain').innerHTML = forms.map(f => {
+    const reached = f.level <= level;
+    const isCurrent = f.level === level;
+    return '<span title="'+f.name+' — '+f.rank+'" style="display:inline-block;opacity:'+(reached?'1':'0.3')+';font-size:'+(isCurrent?'28px':'18px')+';margin:2px;transition:all 0.3s;'+(isCurrent?'filter:drop-shadow(0 0 4px gold);':'')+'">'+f.emoji+'</span>';
+  }).join('<span style="color:#ddd;font-size:10px;margin:0 1px">▸</span>');
+
+  document.getElementById('petNameInput').value = pd.name || '';
+  document.getElementById('petDetailOverlay').classList.add('show');
+  wakePet();
+}
+
+function closePetDetail(){ document.getElementById('petDetailOverlay').classList.remove('show'); }
+
+function renamePet(name){
+  const pd = getPetData();
+  pd.name = name.trim().slice(0,8);
+  savePetData(pd);
+  updatePetWidget();
+  wakePet();
+  toast(pd.name ? '✅ 已命名为「' + pd.name + '」' : '✅ 已恢复默认名');
+}
+
+// ── 切换物种 ──
+function switchSpecies(speciesId){
+  if(!PET_SPECIES[speciesId]) return;
+  const pd = getPetData();
+  if(pd.species === speciesId) return;
+  const oldSpecies = getPetSpecies(pd);
+  pd.species = speciesId;
+  pd.lastInteraction = Date.now();
+  savePetData(pd);
+  updatePetWidget();
+  const newSpecies = getPetSpecies(pd);
+  toast('🔄 已切换为 ' + newSpecies.name + '！');
+  showPetDetail();
+}
+// ── 预报逾期判断 ──
+function preAlertOverdueHours(s){
+  if(s.steps.preAlert) return -1;
+  if(!s.etd) return -1;
+  const etd = new Date(s.etd);
+  const now = new Date();
+  return Math.max(0, Math.floor((now - etd) / (1000*60*60)));
+}
+function isOverdue(s){ return preAlertOverdueHours(s) > 2; }
+function isToday(s){
+  if(!s.etd) return false;
+  return s.etd === getTodayKey();
+}
+function isTomorrow(s){
+  if(!s.etd) return false;
+  const t = new Date(); t.setDate(t.getDate() + 1);
+  return s.etd === t.toISOString().slice(0,10);
+}
+function etdSort(a,b){
+  if(!a.etd) return 1; if(!b.etd) return -1;
+  return new Date(a.etd) - new Date(b.etd);
+}
+
+// ── 渲染 ──
+function renderAll(){
+  const data = getData();
+  const today = getTodayKey();
+  const active = data.shipments.filter(s=>s.status==='active').sort(etdSort);
+  const completed = data.shipments.filter(s=>s.status==='completed');
+
+  // Stats
+  const todayFlights = active.filter(s=>isToday(s));
+  const overdues = active.filter(s=>isOverdue(s));
+  const todayPreAlerts = active.filter(s=>s.steps.preAlert && s._preAlertDate===today);
+  const weekKey = getWeekKey();
+  const clocked = (data.clockOuts[weekKey]||{})[today];
+
+  document.getElementById('statToday').querySelector('.num').textContent = todayFlights.length;
+  document.getElementById('statActive').querySelector('.num').textContent = active.length;
+  document.getElementById('statUrgent').querySelector('.num').textContent = overdues.length;
+  document.getElementById('statPreAlert').querySelector('.num').textContent = todayPreAlerts.length;
+  document.getElementById('statClock').querySelector('.num').textContent = clocked ? '✅' : '—';
+
+  // Urgent bar
+  const alertBar = document.getElementById('alertUrgent');
+  if(overdues.length > 0){
+    alertBar.className = 'alert-bar danger show';
+    alertBar.innerHTML = `🔴 <b>${overdues.length} 票预报逾期未发！</b> —— ${overdues.map(s=>s.mawb).join('、')} —— 货到没人清关 = 仓储费！`;
+  } else {
+    alertBar.className = 'alert-bar';
+  }
+
+  // Flight board
+  renderFlightBoard(active, today);
+
+  // Active list
+  const kw = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+  const filtered = kw ? active.filter(s=>matchShipment(s,kw)) : active;
+  document.getElementById('activeCount').textContent = kw ? `(${filtered.length}/${active.length}票)` : `(${active.length}票)`;
+  document.getElementById('activeList').innerHTML = filtered.length
+    ? filtered.map(s=>renderCard(s,true)).join('')
+    : `<div class="search-result-none">${kw ? '没有匹配的单子' : '暂无进行中，点击下方按钮新建'}</div>`;
+
+  // Completed
+  document.getElementById('completedCount').textContent = `(${completed.length}票)`;
+  const compFiltered = kw ? completed.filter(s=>matchShipment(s,kw)) : completed;
+  const completedList = document.getElementById('completedList');
+  completedList.className = completedCollapsed ? 'completed-section collapsed' : 'completed-section';
+  document.getElementById('completedArrow').textContent = completedCollapsed ? '▸' : '▾';
+  document.getElementById('completedList').innerHTML = compFiltered.length
+    ? compFiltered.map(s=>renderCard(s,false)).join('')
+    : '<p style="color:#aaa;text-align:center;padding:8px;">暂无已完成</p>';
+
+  // Other sections
+  renderTodos(data);
+  renderRecurring(data);
+  renderClockRow(data);
+  document.getElementById('todayDate').textContent = today;
+}
+
+// ── 今日航班看板 ──
+function renderFlightBoard(active, today){
+  const board = document.getElementById('flightBoard');
+  // Today's flights + tomorrow's + overdue pre-alerts still pending
+  const relevant = active.filter(s=>isToday(s) || isTomorrow(s) || isOverdue(s));
+  // Also add flights that departed within last 2 days and pre-alert still pending
+  const recent = active.filter(s=>{
+    if(isToday(s)||isTomorrow(s)||isOverdue(s)) return false;
+    if(!s.etd || s.steps.preAlert) return false;
+    const etd = new Date(s.etd);
+    const daysDiff = (new Date() - etd) / (1000*60*60*24);
+    return daysDiff > 0 && daysDiff < 3;
+  });
+  const all = [...new Set([...relevant, ...recent])].sort(etdSort);
+
+  document.getElementById('boardSubtitle').textContent = all.length ? `(${all.length}票需关注)` : '';
+
+  if(!all.length){
+    board.innerHTML = '<p style="color:#aaa;font-size:13px;padding:8px;">暂无近日航班</p>';
+    return;
+  }
+
+  board.innerHTML = all.map(s=>{
+    const hrs = preAlertOverdueHours(s);
+    let cls, statusText, statusCls;
+    if(s.steps.preAlert){
+      cls = 'prealert-done'; statusText = '预报已发'; statusCls = 'ok';
+    } else if(hrs > 2){
+      cls = 'prealert-overdue'; statusText = `⚠️ 逾期${hrs}小时`; statusCls = 'bad';
+    } else if(isToday(s) || hrs >= 0){
+      cls = 'prealert-pending'; statusText = hrs>=0 ? `待发预报(${hrs}h)` : '今日起飞'; statusCls = 'warn';
+    } else {
+      cls = 'prealert-pending'; statusText = '明日起飞'; statusCls = 'warn';
+    }
+    const etdStr = s.etd ? new Date(s.etd).toLocaleDateString('zh-CN',{month:'short',day:'numeric'}) : '?';
+    return `<div class="flight-chip ${cls}" onclick="document.getElementById('card-${s.id}').scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('card-${s.id}').style.boxShadow='0 0 0 3px #1890ff';setTimeout(()=>{document.getElementById('card-${s.id}').style.boxShadow=''},2000)">
+      <div class="fc-info">
+        <div class="fc-mawb">${s.mawb}</div>
+        <div class="fc-route">${s.route||'?'} · ${s.flight||'?'} · ETD ${etdStr}</div>
+      </div>
+      <div class="fc-status ${statusCls}">${statusText}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── 货单卡片（优化版） ──
+function renderCard(s, isActive){
+  const hrs = preAlertOverdueHours(s);
+  const urgent = isActive && hrs > 2;
+  const soon = isActive && !urgent && (isToday(s) || (hrs >= 0 && hrs <= 2));
+  const cardCls = ['shipment-card', urgent?'urgent':'', soon?'soon':''].filter(Boolean).join(' ');
+  const etdStr = s.etd ? new Date(s.etd).toLocaleDateString('zh-CN',{month:'short',day:'numeric'}) : '未设';
+  const etdCls = ['etd-badge', isToday(s)?'today':'', hrs>2?'past':''].filter(Boolean).join(' ');
+
+  // All steps in unified grid (7 steps same size)
+  const stepsHtml = STEPS.map(st=>{
+    const checked = s.steps[st.key] || false;
+    const isPreAlert = st.key === 'preAlert';
+    let extraCls = '';
+    if(isPreAlert && !checked && isActive){
+      if(hrs > 2) extraCls = 'prealert-overdue';
+      else if(hrs >= 0) extraCls = 'prealert-due';
+    }
+    const cls = ['step-item', checked?'done':'', extraCls].filter(Boolean).join(' ');
+    const icon = checked ? '✅' : (isPreAlert && !checked && isActive && hrs > 2 ? '⚠️' : (isPreAlert && !checked && isActive && hrs >=0 ? '📋' : '○'));
+    return `<div class="${cls}" onclick="${isActive?`toggleStep('${s.id}','${st.key}')`:''}">
+      <span class="step-icon">${icon}</span>
+      <span class="step-label">${st.label}${isPreAlert && !checked && isActive && hrs>2 ? ` 逾期${hrs}h` : ''}${isPreAlert && !checked && isActive && hrs>=0 && hrs<=2 ? ` ${hrs}h` : ''}</span>
+    </div>`;
+  }).join('');
+
+  // Actions
+  let actionsHtml = '';
+  if(isActive){
+    actionsHtml = `
+      <div class="card-actions">
+        <button class="btn" onclick="editShipment('${s.id}')">✏️ 编辑</button> ${!s.steps.preAlert ? `<button class="btn blue" onclick="showPreAlert('${s.id}')">📋 生成预报</button>` : ''}
+        <button class="btn green" onclick="completeShipment('${s.id}')">✅ 完成</button>
+        <button class="btn danger" onclick="deleteShipment('${s.id}')">删除</button>
+      </div>`;
+  } else {
+    actionsHtml = `
+      <div class="card-actions">
+        <button class="btn blue" onclick="reopenShipment('${s.id}')">🔄 重新打开</button>
+        <button class="btn danger" onclick="deleteShipment('${s.id}')">删除</button>
+      </div>`;
+  }
+
+  return `<div class="${cardCls}" id="card-${s.id}">
+    <div class="card-top">
+      <div>
+        <div class="mawb">${s.mawb||'未命名'}</div>
+        <div class="route-line">${s.route||'航线未设'} · ${s.flight||'?'}</div>
+      </div>
+      <div class="${etdCls}">ETD ${etdStr}</div>
+    </div>
+    <div class="step-grid">${stepsHtml}</div>
+    ${actionsHtml}
+  </div>`;
+}
+
+// ── 操作函数 ──
+function toggleStep(id, stepKey){
+  const data = getData();
+  const s = data.shipments.find(x=>x.id===id);
+  if(!s) return;
+  s.steps[stepKey] = !s.steps[stepKey];
+  if(s.steps[stepKey]){
+    addPetXp(10); // 完成一个步骤 +10 XP
+  }
+  if(stepKey==='preAlert' && s.steps[stepKey]){
+    s._preAlertDate = getTodayKey();
+    toast('✅ 预报已标记为已发');
+  }
+  // Auto-complete if all done
+  if(STEPS.every(st=>s.steps[st.key])){
+    s.status = 'completed'; s._completedDate = getTodayKey();
+    addPetXp(30); // 全部完成 +30 XP
+    toast('🎉 全部完成');
+  }
+  saveData(data); renderAll();
+}
+
+function completeShipment(id){
+  const data = getData();
+  const s = data.shipments.find(x=>x.id===id);
+  if(!s) return;
+  s.status = 'completed'; s._completedDate = getTodayKey();
+  saveData(data); renderAll();
+  addPetXp(30); // 完成一票 +30 XP
+  toast('✅ 已移至已完成');
+}
+function reopenShipment(id){
+  const data = getData();
+  const s = data.shipments.find(x=>x.id===id);
+  if(!s) return;
+  s.status = 'active'; delete s._completedDate;
+  saveData(data); renderAll();
+  toast('🔄 已重新打开');
+}
+function deleteShipment(id){
+  if(!confirm('确定删除？')) return;
+  const data = getData();
+  data.shipments = data.shipments.filter(s=>s.id!==id);
+  saveData(data); renderAll();
+  toast('已删除');
+}
+
+// ── 搜索 ──
+function matchShipment(s, kw){
+  return (s.mawb||'').toLowerCase().includes(kw) ||
+         (s.route||'').toLowerCase().includes(kw) ||
+         (s.flight||'').toLowerCase().includes(kw) ||
+         (s.notes||'').toLowerCase().includes(kw);
+}
+function doSearch(){ renderAll(); }
+
+// ── 快速添加：搜索框输入 "MAWB ROUTE ETD" 格式回车 ──
+function quickAdd(e){
+  if(e.key !== 'Enter') return;
+  const val = (document.getElementById('searchInput').value||'').trim();
+  // 至少包含3段：MAWB ROUTE ETD
+  const parts = val.split(/\s+/);
+  if(parts.length < 3) return; // 正常搜索
+  // 检查第三段是否像日期
+  const dateLike = parts[2];
+  if(!/^\d{1,2}[\/\-.]\d{1,2}$/.test(dateLike) && !/^\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}$/.test(dateLike)) return;
+  e.preventDefault();
+  const data = getData();
+  let etd = dateLike;
+  if(/^\d{1,2}[\/\-.]\d{1,2}$/.test(dateLike)){
+    const [m,d] = dateLike.split(/[\/\-.]/);
+    const y = new Date().getFullYear();
+    etd = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  }
+  const id = 'SHP' + Date.now();
+  const steps = {}; STEPS.forEach(st=>steps[st.key]=false);
+  data.shipments.unshift({ id, mawb:parts[0], route:parts[1], flight:'', etd, notes:'', steps, status:'active', createdAt:getTodayKey() });
+  saveData(data);
+  document.getElementById('searchInput').value = '';
+  renderAll();
+  addPetXp(20); // 快速新建 +20 XP
+  toast('✅ 快速添加：' + parts[0]);
+}
+
+// ── 预报弹窗 ──
+function showPreAlert(id){
+  const data = getData();
+  const s = data.shipments.find(x=>x.id===id);
+  if(!s) return;
+  const etdDate = s.etd ? new Date(s.etd) : new Date();
+  const etaDate = new Date(etdDate); etaDate.setDate(etaDate.getDate()+1);
+  // 判断是否意大利线
+      const isItaly = s.route && /\b(MXP|FCO|BLQ|VCE|LIN|TRN|GOA|NAP|PSA|VRN)\b/i.test(s.route);
+      const text = isItaly ? `TO：{意大利代理名称 / Agente in Italia}
+FROM：{你的公司名 / Mittente}
+RE：PRE-ALERT / SHIPMENT ADVICE
+
+Gentile {代理联系人},
+
+Please find below the shipment details:
+
+MAWB：${s.mawb}
+HAWB：{分提单号（如有）}
+FLIGHT：${s.flight||'{航班号}'} / ETD：${s.etd||'{起飞日期}'} / ETA：${etaDate.toISOString().slice(0,10)}
+ROUTE：${s.route||'{起运港 → 目的港}'}
+
+CARGO DETAILS：
+PIECES：{件数} pcs / WEIGHT：{重量} KGS / VOL：{体积} CBM
+DESCRIPTION：{货物品名（中/意/英）}
+HS CODE：{海关编码}
+
+SHIPPER / 发货人：
+{发货人名称地址}
+
+CONSIGNEE / 收货人：
+{收货人名称}
+Codice Fiscale / P.IVA：{意大利税号}
+Address：{意大利收货地址}
+
+DOCUMENTS ATTACHED：
+☐ MAWB  ☐ HAWB  ☐ Packing List  ☐ Commercial Invoice  ☐ Customs Declaration
+
+Please arrange customs clearance and final delivery upon arrival.
+IVA 22% unless otherwise exempted.
+For any questions please contact us.
+
+Grazie e cordiali saluti,
+{你的名字}` : `TO：{海外代理名称}
+FROM：{你的公司名}
+
+航班信息：
+MAWB：${s.mawb}
+FLIGHT：${s.flight||'{航班号}'} / ${s.etd||'{起飞日期}'}
+ROUTE：${s.route||'{起运港 → 目的港}'}
+ETA：${etaDate.toISOString().slice(0,10)}
+
+货物信息：
+PIECES：{件数} / WEIGHT：{重量}KGS / VOL：{体积}CBM
+SHIPPER：{发货人}
+CNEE：{收货人}
+
+随附单据：MAWB/HAWB/PL/IV/报关单
+
+请安排目的港清关及派送。有问题请随时联系。`;
+  document.getElementById('preAlertText').value = text;
+  document.getElementById('preAlertModal').classList.add('show');
+}
+function closePreAlertModal(){ document.getElementById('preAlertModal').classList.remove('show'); }
+function copyPreAlert(){
+  const ta = document.getElementById('preAlertText');
+  ta.select(); document.execCommand('copy');
+  toast('📋 已复制！到QQ Ctrl+V 发给代理');
+  closePreAlertModal();
+}
+
+
+// ── 新增弹窗 ──
+function showAddModal(){ document.getElementById('addModal').classList.add('show'); document.getElementById('addMawb').focus(); }
+function closeAddModal(){
+  document.getElementById('addModal').classList.remove('show');
+  // Restore original form HTML (image/edit forms replace it)
+  if(_modalOriginalHTML){
+    document.getElementById('addModal').querySelector('.modal').innerHTML = _modalOriginalHTML;
+  }
+}
+function addShipment(){
+  const mawb = document.getElementById('addMawb').value.trim();
+  if(!mawb){ toast('请输入提单号'); return; }
+  const data = getData();
+  const id = 'SHP'+Date.now();
+  const steps = {}; STEPS.forEach(st=>steps[st.key]=false);
+  data.shipments.unshift({
+    id, mawb,
+    route: document.getElementById('addRoute').value.trim(),
+    flight: document.getElementById('addFlight').value.trim(),
+    etd: document.getElementById('addEtd').value,
+    notes: document.getElementById('addNotes').value.trim(),
+    steps, status:'active', createdAt:getTodayKey()
+  });
+  saveData(data); closeAddModal(); renderAll();
+  addPetXp(20); // 新建一票 +20 XP
+  toast('✅ 已添加 ' + mawb);
+}
+
+// ── 待办 ──
+function renderTodos(data){
+  const today = getTodayKey();
+  if(!data.todos) data.todos = {};
+  const items = data.todos[today]||[];
+  const pending = items.filter(t=>!t.done);
+  const done = items.filter(t=>t.done);
+  let html = '';
+  if(!pending.length) html += '<div style="color:#aaa;text-align:center;padding:6px;font-size:12px;">暂无待办</div>';
+  else html += pending.map(t=>`<div class="todo-item" onclick="toggleTodo('${t.id}')"><span>○</span><span>${t.text}</span><button class="todo-del" onclick="event.stopPropagation();deleteTodo('${t.id}')">✕</button></div>`).join('');
+  if(done.length > 0){
+    html += `<div class="todo-done-section">
+      <div class="todo-done-header" onclick="this.nextElementSibling.classList.toggle('show')">✅ 已完成 (${done.length}) ▾</div>
+      <div class="todo-done-list show">${done.map(t=>`<div class="todo-done-item" onclick="toggleTodo('${t.id}')">✅ ${t.text}</div>`).join('')}<button class="clear-done" onclick="event.stopPropagation();clearDoneTodos()">清空</button></div>
+    </div>`;
+  }
+  document.getElementById('todoList').innerHTML = html;
+}
+function addTodo(){
+  const input = document.getElementById('todoInput');
+  const text = input.value.trim();
+  if(!text) return;
+  const data = getData();
+  const today = getTodayKey();
+  if(!data.todos[today]) data.todos[today] = [];
+  data.todos[today].unshift({ id:'TD'+Date.now(), text, done:false });
+  saveData(data); input.value = ''; renderAll();
+}
+function toggleTodo(id){
+  const data = getData();
+  const today = getTodayKey();
+  if(!data.todos[today]) return;
+  const t = data.todos[today].find(x=>x.id===id);
+  if(!t) return;
+  t.done = !t.done; saveData(data); renderAll();
+}
+function deleteTodo(id){
+  const data = getData();
+  const today = getTodayKey();
+  if(!data.todos[today]) return;
+  data.todos[today] = data.todos[today].filter(x=>x.id!==id);
+  saveData(data); renderAll();
+}
+function clearDoneTodos(){
+  const data = getData();
+  const today = getTodayKey();
+  if(data.todos[today]) data.todos[today] = data.todos[today].filter(t=>!t.done);
+  saveData(data); renderAll();
+}
+
+// ── 定期任务 ──
+function renderRecurring(data){
+  const days = ['日','一','二','三','四','五','六'];
+  const todayIdx = getWeekday();
+  const weekKey = getWeekKey();
+  const list = document.getElementById('recurringList');
+  document.getElementById('recurringCount').textContent = `(${data.recurringTasks.length}项)`;
+  if(!data.recurringTasks.length){
+    list.innerHTML = '<p style="color:#aaa;text-align:center;padding:8px;font-size:12px;">暂无</p>';
+  } else {
+    list.innerHTML = data.recurringTasks.map(rt=>{
+      const isToday = rt.dayOfWeek === todayIdx;
+      const checked = rt.weekChecked && rt.weekChecked[weekKey];
+      const cls = ['recurring-card', isToday&&!checked?'today':'', checked?'done':''].filter(Boolean).join(' ');
+      return `<div class="${cls}">
+        <div><div class="rc-label">${isToday&&!checked?'🔔 ':''}${rt.label}</div><div class="rc-day">每周${days[rt.dayOfWeek]}${isToday?' · 今天':''}${checked?' · 已完成':''}</div></div>
+        <div style="display:flex;align-items:center">
+          <span class="rc-check" onclick="toggleRecurring('${rt.id}')">${checked?'✅':'○'}</span>
+          <button class="rc-delete" onclick="deleteRecurring('${rt.id}')">✕</button>
+        </div></div>`;
+    }).join('');
+  }
+  list.innerHTML += '<button class="add-recurring" onclick="addRecurring()">＋ 添加</button>';
+}
+function toggleRecurring(id){
+  const data = getData();
+  const rt = data.recurringTasks.find(r=>r.id===id);
+  if(!rt) return;
+  const wk = getWeekKey();
+  if(!rt.weekChecked) rt.weekChecked = {};
+  rt.weekChecked[wk] = !rt.weekChecked[wk];
+  saveData(data); renderAll();
+  if(rt.weekChecked[wk]){ addPetXp(15); toast('✅ 已完成：'+rt.label); }
+}
+function addRecurring(){
+  const label = prompt('定期任务名称：'); if(!label||!label.trim()) return;
+  const dayStr = prompt('每周几？(1=周一...5=周五)','1');
+  const day = parseInt(dayStr);
+  if(isNaN(day)||day<0||day>6){ toast('请输入0-6'); return; }
+  const data = getData();
+  data.recurringTasks.push({ id:'RT'+Date.now(), label:label.trim(), dayOfWeek:day, weekChecked:{} });
+  saveData(data); renderAll();
+}
+function deleteRecurring(id){
+  const data = getData();
+  const rt = data.recurringTasks.find(r=>r.id===id);
+  if(!rt) return;
+  if(!confirm('删除「'+rt.label+'」？')) return;
+  data.recurringTasks = data.recurringTasks.filter(r=>r.id!==id);
+  saveData(data); renderAll();
+}
+
+// ── 打卡 ──
+function renderClockRow(data){
+  const weekKey = getWeekKey();
+  const today = getTodayKey();
+  const days = ['周一','周二','周三','周四','周五'];
+  const startDate = new Date(); startDate.setDate(startDate.getDate()-startDate.getDay()+1);
+  const dateOfDay = [];
+  for(let i=0;i<5;i++){ const d=new Date(startDate);d.setDate(d.getDate()+i);dateOfDay.push(d.toISOString().slice(0,10)); }
+  const outs = data.clockOuts[weekKey] || {};
+  document.getElementById('clockRow').innerHTML = dateOfDay.map((dk,i)=>{
+    const isToday = dk===today;
+    const isDone = !!outs[dk];
+    const cls = ['clock-day',isToday?'today':'',isDone?'done':''].filter(Boolean).join(' ');
+    return `<div class="${cls}" onclick="toggleClock('${dk}')"><div class="day-label">${days[i]}</div><div class="day-check">${isDone?'✅':'○'}</div></div>`;
+  }).join('');
+}
+function toggleClock(dk){
+  const data = getData();
+  const wk = getWeekKey();
+  if(!data.clockOuts[wk]) data.clockOuts[wk] = {};
+  data.clockOuts[wk][dk] = !data.clockOuts[wk][dk];
+  saveData(data); renderAll();
+  if(data.clockOuts[wk][dk]) toast('✅ 打卡成功！');
+}
+
+// ── 下班提醒 ──
+let reminderFiredToday=false, alarmInterval=null, snoozeUntil=null, titleFlashing=null;
+
+function saveReminder(){
+  const t = document.getElementById('reminderTime').value;
+  localStorage.setItem('air-export-reminder',t);
+  document.getElementById('reminderStatus').style.display = t?'inline':'none';
+  resetReminder();
+}
+function loadReminder(){
+  const saved = localStorage.getItem('air-export-reminder')||'18:25';
+  document.getElementById('reminderTime').value = saved;
+  document.getElementById('reminderStatus').style.display = 'inline';
+  return saved;
+}
+function resetReminder(){ reminderFiredToday=false; snoozeUntil=null; }
+
+function playAlarm(){
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const play = ()=>{
+      const now = ctx.currentTime;
+      const notes = [{freq:523,start:0},{freq:659,start:1.4},{freq:784,start:2.8},{freq:659,start:4.2},{freq:523,start:5.6}];
+      notes.forEach(n=>{
+        const osc=ctx.createOscillator(),gain=ctx.createGain();
+        osc.type='sine';osc.frequency.value=n.freq;
+        const t=now+n.start;
+        gain.gain.setValueAtTime(0,t);gain.gain.linearRampToValueAtTime(0.15,t+0.3);
+        gain.gain.setValueAtTime(0.15,t+1.2);gain.gain.linearRampToValueAtTime(0,t+1.5);
+        osc.connect(gain);gain.connect(ctx.destination);osc.start(t);osc.stop(t+1.5);
+      });
+    };
+    if(ctx.state==='suspended') ctx.resume().then(play); else play();
+  }catch(e){}
+}
+function startTitleFlash(){
+  if(titleFlashing) return;
+  const orig = document.title;
+  let on = true;
+  titleFlashing = setInterval(()=>{ document.title = on?'⏰ 该打卡了！':orig; on=!on; },800);
+}
+function stopTitleFlash(){
+  if(titleFlashing){ clearInterval(titleFlashing); titleFlashing=null; }
+  document.title = '🛫 空运出口工作台';
+}
+function showReminderOverlay(){
+  document.getElementById('reminderOverlay').classList.add('show');
+  startTitleFlash(); playAlarm();
+  if(alarmInterval) clearInterval(alarmInterval);
+  alarmInterval = setInterval(playAlarm, 120*1000);
+}
+function dismissReminder(){
+  document.getElementById('reminderOverlay').classList.remove('show');
+  stopTitleFlash();
+  if(alarmInterval){ clearInterval(alarmInterval); alarmInterval=null; }
+  document.getElementById('alertUrgent').className = 'alert-bar';
+  const data = getData();
+  const wk = getWeekKey();
+  const today = getTodayKey();
+  if(!data.clockOuts[wk]) data.clockOuts[wk] = {};
+  data.clockOuts[wk][today] = true;
+  saveData(data); renderAll();
+  addPetXp(50); // 打卡下班 +50 XP
+  toast('✅ 已打卡，今天辛苦了！');
+}
+function snoozeReminder(){
+  document.getElementById('reminderOverlay').classList.remove('show');
+  stopTitleFlash();
+  if(alarmInterval){ clearInterval(alarmInterval); alarmInterval=null; }
+  document.getElementById('alertUrgent').className = 'alert-bar';
+  snoozeUntil = Date.now() + 5*60*1000;
+  toast('💤 5分钟后再次提醒');
+}
+function checkReminder(){
+  const now = new Date();
+  const day = now.getDay();
+  if(day===0||day===6) return;
+  if(now.getHours()===0&&now.getMinutes()<1){ reminderFiredToday=false; snoozeUntil=null; stopTitleFlash(); if(alarmInterval){clearInterval(alarmInterval);alarmInterval=null;} }
+  if(reminderFiredToday && !snoozeUntil) return;
+  if(snoozeUntil && Date.now() < snoozeUntil) return;
+  const t = (localStorage.getItem('air-export-reminder')||'18:25').split(':').map(Number);
+  const match = now.getHours()===t[0] && now.getMinutes()===t[1];
+  const snoozeDue = snoozeUntil && Date.now() >= snoozeUntil;
+  if(!match && !snoozeDue) return;
+  reminderFiredToday = true; snoozeUntil = null;
+  const data = getData();
+  const wk = getWeekKey();
+  const today = getTodayKey();
+  if(!(data.clockOuts[wk]||{})[today]){
+    if(Notification.permission==='granted'){
+      new Notification('⏰ 该下班打卡了！',{ body:'点击打卡下班，确认今天工作全部完成。', requireInteraction:true, tag:'clock-out' });
+    }
+    showReminderOverlay();
+  }
+}
+
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(el._timeout);
+  el._timeout = setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+document.addEventListener('click', function once(){
+  if(Notification.permission==='default') Notification.requestPermission();
+}, {once:true});
+
+// ── 图片录入：直接显示图片+表单，用户对照填写 ──
+
+// 机场代码映射
+const AIRPORTS = {
+  "SZX":"深圳","CAN":"广州","PVG":"上海浦东","SHA":"上海虹桥","PEK":"北京首都","PKX":"北京大兴",
+  "HKG":"香港","CTU":"成都","CKG":"重庆","XIY":"西安","WUH":"武汉","CSX":"长沙",
+  "TAO":"青岛","XMN":"厦门","NGB":"宁波","NKG":"南京","HGH":"杭州","CGO":"郑州",
+  "TNA":"济南","KMG":"昆明","FOC":"福州","SYX":"三亚","HAK":"海口","MFM":"澳门",
+  "MXP":"米兰MXP","FCO":"罗马FCO","BLQ":"博洛尼亚","VCE":"威尼斯",
+  "LIN":"米兰LIN","TRN":"都灵","GOA":"热那亚","NAP":"那不勒斯","PSA":"比萨","VRN":"维罗纳",
+  "DOH":"多哈","IST":"伊斯坦布尔","LUX":"卢森堡","DWC":"迪拜世界中心",
+  "LHR":"伦敦","CDG":"巴黎","FRA":"法兰克福","AMS":"阿姆斯特丹","MAD":"马德里","BCN":"巴塞罗那",
+  "ICN":"首尔","NRT":"东京成田","HND":"东京羽田","KIX":"大阪","TPE":"台北","BKK":"曼谷","SIN":"新加坡","DXB":"迪拜",
+  "LAX":"洛杉矶","JFK":"纽约","ORD":"芝加哥","SFO":"旧金山","DFW":"达拉斯","MIA":"迈阿密",
+};
+
+// ── 打开图片+表单（纯手动，零依赖，永不出错） ──
+function openImageForm(imgSrc){
+  document.getElementById('addModal').classList.add('show');
+  document.getElementById('addModal').querySelector('.modal').innerHTML = '<h3>📷 票据录入 — 对照图片填写</h3>' +
+    '<img src="' + imgSrc + '" style="width:100%;max-height:240px;object-fit:contain;border:1px solid #e8e8e8;border-radius:8px;margin-bottom:12px;cursor:zoom-in" onclick="this.style.maxHeight=this.style.maxHeight===\'240px\'?\'none\':\'240px\'" title="点击放大/缩小">' +
+    '<div style="font-size:11px;color:#888;background:#fafafa;padding:6px 10px;border-radius:4px;margin-bottom:8px">💡 对照上方图片填写，与看图打字一样快</div>' +
+    '<label>主提单号 MAWB *</label>' +
+    '<input id="addMawb" placeholder="999-12345678">' +
+    '<label>航线（起运港 → 目的港）</label>' +
+    '<input id="addRoute" placeholder="SZX → MXP">' +
+    '<label>航班号</label>' +
+    '<input id="addFlight" placeholder="CA1234">' +
+    '<label>ETD 起飞日期</label>' +
+    '<input id="addEtd" type="date">' +
+    '<label>备注</label>' +
+    '<input id="addNotes" placeholder="客户名、件重体、特殊要求等">' +
+    '<div class="btn-row">' +
+    '<button class="btn" onclick="closeAddModal()">取消</button>' +
+    '<button class="btn blue" style="padding:8px 20px;font-size:14px" onclick="addShipment()">确认创建</button>' +
+    '</div>';
+}
+
+// ── 图片入口 ──
+async function imageToForm(blob){
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image();
+      i.onload = ()=>resolve(i);
+      i.onerror = ()=>reject(new Error('图片加载失败'));
+      i.src = URL.createObjectURL(blob);
+    });
+    const maxW = 1600, maxH = 1200;
+    let w = img.width, h = img.height;
+    if(w > maxW){ h = h * maxW / w; w = maxW; }
+    if(h > maxH){ w = w * maxH / h; h = maxH; }
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    const imgSrc = canvas.toDataURL('image/png');
+    URL.revokeObjectURL(img.src);
+    openImageForm(imgSrc);
+  } catch(e){
+    toast('❌ 图片加载失败，请重试');
+  }
+}
+
+async function ocrImage(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  toast('📷 加载图片...');
+  await imageToForm(file);
+  event.target.value = '';
+}
+
+async function ocrClipboard(){
+  try{
+    let blob = null;
+    try{
+      const items = await navigator.clipboard.read();
+      for(const item of items) for(const type of item.types) if(type.startsWith('image/')){ blob = await item.getType(type); break; }
+    }catch(e){
+      toast('📋 请按 Ctrl+V 粘贴截图 (15秒)');
+      setupPasteListener();
+      return;
+    }
+    if(!blob){ toast('剪贴板无图片，请截图后重试'); return; }
+    toast('📷 加载图片...');
+    await imageToForm(blob);
+  }catch(e){ toast('粘贴失败，请用"拍照录入"'); }
+}
+
+// ── OCR文本解析 ──
+function parseAWB(text){
+  const raw = text.replace(/[\r\n]+/g,' | ').trim();
+  let upper = raw
+    .replace(/(\d)[oO](\d)/g,'$10$2').replace(/[oO](\d{2,})/g,'0$1')
+    .replace(/(\d)[Il](\d)/g,'$11$2').replace(/[Il](\d{2,})/g,'1$1')
+    .toUpperCase();
+  const res = { mawb:'', route:'', flight:'', etd:'', notes:'', raw };
+  for(const re of [
+    /(?:MAWB|AWB|NO)[:\s.]*\s*(\d{3})[-\s]+(\d[\d\s]{5,10}\d)\b/i,
+    /(?:MAWB|AWB|NO)[:\s.]*\s*(\d{3})[-\s]+(\d{7,8})\b/i,
+    /\b(\d{3})\s+(\d[\d\s]{5,10}\d)\b/,
+    /\b(\d{3})[-\s]+(\d{7,8})\b/,
+  ]){
+    const m = upper.match(re);
+    if(m){
+      const digits = (m[2]||'').replace(/\s+/g, '');
+      if(digits.length >= 7 && digits.length <= 8){ res.mawb = m[1] + '-' + digits; break; }
+    }
+  }
+  if(!res.mawb){
+    const joined = upper.replace(/(\d)\s+(\d)/g, '$1$2');
+    for(const re of [/(\d{3})[-\s]+(\d{7,8})/,/(\d{3})[-\s]+(\d{4})[-\s]+(\d{4})/]){
+      const m = joined.match(re); if(m){ res.mawb = m[1]+'-'+(m[3]||m[2]); break; }
+    }
+  }
+  const skip = new Set(['AWB','MAW','HAW','ETD','ETA','TOT','PCS','KGS','KGM','VOL','CBM','SHC','NVD','NCV','QTY','DIM','GWT','CHG','PPD','COLL','TACT','RCP','NOT','THE','FOR','AND','ALL','VIA','WGT','FLT','DEP','ARR','ORG','DST','TOT','RATE','TOTAL','PREPAID','COLLECT','CHARGE','WEIGHT','OTHER','DUE','AGENT','ISSUING','ACCOUNTING','INFO','CODE','NAME','CITY','AIRPORT','DESTINATION','MAWB','ROUTE','LIGHT','FLIGHT']);
+  const codes = [...upper.matchAll(/\b([A-Z]{3})\b/g)].map(m=>m[1]);
+  const apts = codes.filter(c=>!skip.has(c)&&AIRPORTS[c]);
+  if(apts.length>=2) res.route = apts[0]+' → '+apts[apts.length-1];
+  else if(apts.length===1) res.route = apts[0];
+  let fm = upper.match(/(?:FLIGHT|FLT)[:\s]*([A-Z]{2})\s*(\d{2,4})/i);
+  if(!fm){ for(const f of [...upper.matchAll(/\b([A-Z]{2})\s*(\d{2,4})\b/g)]){ if(f[1]==='HT'||f[1]==='GH'||f[1]==='ET'||f[1]==='ND'||f[1]==='OT') continue; if(f[2].length>=2&&f[2].length<=4){ fm=f; break; } } }
+  if(fm) res.flight = fm[1]+fm[2];
+  const MON = {JAN:1,FEB:2,MAR:3,APR:4,MAY:5,JUN:6,JUL:7,AUG:8,SEP:9,OCT:10,NOV:11,DEC:12};
+  const y = new Date().getFullYear();
+  let dm = upper.match(/(\d{1,2})\s*(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)/i);
+  if(!dm) dm = upper.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+  if(!dm){ const m2 = raw.match(/\b(\d{1,2})\.(\d{1,2})\b/); if(m2){ const mm=+m2[1],dd=+m2[2]; if(mm>=1&&mm<=12&&dd>=1&&dd<=31) dm = [null, String(y), m2[1], m2[2]]; } }
+  if(!dm){ const m3 = raw.match(/\b(\d{1,2})\/(\d{1,2})\b/); if(m3){ const mm=+m3[1],dd=+m3[2]; if(mm>=1&&mm<=12&&dd>=1&&dd<=31) dm = [null, String(y), m3[1], m3[2]]; } }
+  if(dm){ if(dm[2]&&MON[dm[2].toUpperCase()]) res.etd = y+'-'+String(MON[dm[2].toUpperCase()]).padStart(2,'0')+'-'+dm[1].padStart(2,'0'); else if(dm[1]&&dm[1].length===4) res.etd = dm[1]+'-'+dm[2].padStart(2,'0')+'-'+dm[3].padStart(2,'0'); }
+  const joinedVals = upper.replace(/(\d)\s+(\d)/g, '$1$2');
+  const n=[]; const pm=joinedVals.match(/(\d+)\s*(?:PCS|件)/i),wm=joinedVals.match(/(\d+\.?\d*)\s*(?:KGS|KG)\b/i),vm=joinedVals.match(/(\d+\.?\d*)\s*(?:CBM|MC)\b/i);
+  if(pm)n.push(pm[1]+'件');if(wm)n.push(wm[1]+'KGS');if(vm)n.push(vm[1]+'CBM');
+  // HAWB 分单号：AGC-DB518070、784-12345678 等
+  const hawbRe = /\b([A-Z]{2,3})-([A-Z]{2}\d{4,})\b/;
+  const hm = raw.match(hawbRe) || upper.match(hawbRe);
+  if(hm && hm[0] !== res.mawb) n.push('HAWB:'+hm[0]);
+  // 中文客户名/备注
+  const cn = raw.match(/[一-鿿㐀-䶿]{2,}/);
+  if(cn) n.push(cn[0]);
+  res.notes = n.join(' / '); return res;
+}
+
+// ── 粘贴OCR文本（微信/QQ提取图片文字后粘贴到这里） ──
+function pasteOcrText(){
+  const text = prompt('请用微信/QQ提取图片中的文字，\n然后粘贴到这里：\n\n（微信：长按图片 → 提取文字 → 全选复制）\n（QQ：打开图片 → 点右上角"..." → 提取文字）');
+  if(!text || !text.trim()) return;
+
+  // Show the add form and fill with parsed OCR text
+  showAddModal();
+  const parsed = parseAWB(text);
+  let n = 0;
+  if(parsed.mawb){ document.getElementById('addMawb').value = parsed.mawb; n++; }
+  if(parsed.route){ document.getElementById('addRoute').value = parsed.route; n++; }
+  if(parsed.flight){ document.getElementById('addFlight').value = parsed.flight; n++; }
+  if(parsed.etd){ document.getElementById('addEtd').value = parsed.etd; n++; }
+  if(parsed.notes){ document.getElementById('addNotes').value = parsed.notes; n++; }
+  if(n > 0){
+    toast('✅ 已识别 ' + n + ' 个字段，请核对后点创建');
+  } else {
+    toast('💡 未能自动识别，请手动填写');
+  }
+  // Show parsed text for verification
+  document.getElementById('addNotes').value = (document.getElementById('addNotes').value + ' [OCR: ' + text.replace(/\n/g,' ').substring(0,80) + ']').trim();
+}
+
+
+
+
+
+
+// ── 折叠/展开已完成 ──
+function toggleCompleted(){
+  completedCollapsed = !completedCollapsed;
+  const list = document.getElementById('completedList');
+  const arrow = document.getElementById('completedArrow');
+  if(completedCollapsed){
+    list.classList.add('collapsed');
+    arrow.textContent = '▸';
+  }else{
+    list.classList.remove('collapsed');
+    arrow.textContent = '▾';
+  }
+}
+// ── 编辑货单 ──
+function editShipment(id){
+  const data = getData();
+  const s = data.shipments.find(x=>x.id===id);
+  if(!s) return;
+  document.getElementById('addModal').classList.add('show');
+  document.getElementById('addModal').querySelector('.modal').innerHTML = 
+    '<h3>✏️ 编辑 ' + s.mawb + '</h3>' +
+    '<label>主提单号 MAWB</label>' +
+    '<input id="addMawb" value="' + (s.mawb||'') + '">' +
+    '<label>航线（起运港 → 目的港）</label>' +
+    '<input id="addRoute" value="' + (s.route||'') + '" placeholder="SZX → MXP">' +
+    '<label>航班号</label>' +
+    '<input id="addFlight" value="' + (s.flight||'') + '">' +
+    '<label>ETD 起飞日期</label>' +
+    '<input id="addEtd" type="date" value="' + (s.etd||'') + '">' +
+    '<label>备注</label>' +
+    '<input id="addNotes" value="' + (s.notes||'') + '">' +
+    '<div class="btn-row">' +
+    '<button class="btn" onclick="closeAddModal()">取消</button>' +
+    '<button class="btn blue" style="padding:8px 20px;font-size:14px" onclick="saveEdit(\'' + id + '\')">保存</button>' +
+    '</div>';
+}
+
+function saveEdit(id){
+  const data = getData();
+  const s = data.shipments.find(x=>x.id===id);
+  if(!s) return;
+  s.mawb = document.getElementById('addMawb').value.trim();
+  s.route = document.getElementById('addRoute').value.trim();
+  s.flight = document.getElementById('addFlight').value.trim();
+  s.etd = document.getElementById('addEtd').value;
+  s.notes = document.getElementById('addNotes').value.trim();
+  saveData(data);
+  closeAddModal();
+  renderAll();
+  toast('✅ 已保存');
+}
+
+// ── 数据备份/恢复 ──
+function exportData(){
+  const data = localStorage.getItem('air-export-data');
+  if(!data){ toast('没有数据可备份'); return; }
+  const blob = new Blob([data], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'air-export-backup-' + getTodayKey() + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('💾 备份已下载');
+}
+
+function importData(){
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    try{
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if(!data.shipments && !data.todos && !data.clockOuts){
+        toast('❌ 不是有效的备份文件');
+        return;
+      }
+      localStorage.setItem('air-export-data', text);
+      renderAll();
+      toast('📥 数据已恢复 (' + (data.shipments||[]).length + '票)');
+    }catch(e){
+      toast('❌ 文件格式错误');
+    }
+  };
+  input.click();
+}
+
+function resetAllData(){
+  if(!confirm('确定要清空所有数据吗？此操作不可恢复！\n\n建议先备份。')) return;
+  if(!confirm('再次确认：清空所有货单、待办、打卡记录？')) return;
+  localStorage.removeItem('air-export-data');
+  renderAll();
+  toast('🗑 数据已清空');
+}
+
+// ── 📋 静默同步：复制 Markdown 到剪贴板 ──
+function syncToClipboard(){
+  const data = getData();
+  const active = (data.shipments||[]).filter(s=>s.status!=='completed');
+  const completed = (data.shipments||[]).filter(s=>s.status==='completed');
+
+  let md = '# 🛫 空运出口跟踪表\n\n';
+  md += '> 做完一步，把 `[ ]` 改成 `[x]`\n\n---\n\n';
+
+  md += '## 🟡 进行中\n\n';
+  if(!active.length){ md += '_暂无_\n\n'; }
+  else {
+    active.forEach(s=>{
+      const etdStr = s.etd || '未设';
+      md += '### ' + s.mawb + ' | ' + (s.route||'?') + ' | ' + (s.flight||'?') + ' | ETD ' + etdStr + '\n';
+      STEPS.forEach(st=>{
+        md += '- [' + (s.steps[st.key]?'x':' ') + '] ' + st.label + '\n';
+      });
+      if(s.notes) md += '- 备注：' + s.notes + '\n';
+      md += '\n';
+    });
+  }
+
+  md += '---\n\n## 🟢 已完成\n\n';
+  if(!completed.length){ md += '_暂无_\n\n'; }
+  else {
+    completed.forEach(s=>{
+      md += '### ' + s.mawb + ' | ' + (s.route||'?') + ' | ' + (s.flight||'?') + ' | ETD ' + (s.etd||'?') + '\n';
+      STEPS.forEach(st=>{
+        md += '- [' + (s.steps[st.key]?'x':' ') + '] ' + st.label + '\n';
+      });
+      if(s.notes) md += '- 备注：' + s.notes + '\n';
+      md += '\n';
+    });
+  }
+
+  md += '---\n\n## ⏰ 下班打卡\n\n';
+  md += '| 周一 | 周二 | 周三 | 周四 | 周五 |\n';
+  md += '|:---:|:---:|:---:|:---:|:---:|\n';
+  md += '| | | | | |\n';
+
+  navigator.clipboard.writeText(md).then(()=>{
+    toast('📋 已复制 ' + active.length + ' 票！粘贴到 Chat 或 shipments.md');
+  }).catch(()=>{
+    toast('❌ 复制失败，请重试');
+  });
+}
+
+// ── 启动 ──
+_modalOriginalHTML = document.getElementById('addModal').querySelector('.modal').innerHTML;
+loadReminder();
+renderAll();
+updatePetWidget();
+scheduleIdleBehavior();
+resetReminder();
+setInterval(()=>{ renderAll(); checkReminder(); }, 30*1000);
+
+// 📱 注册 Service Worker（PWA 离线支持）
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}
+
+</script>
+</body>
+</html>
