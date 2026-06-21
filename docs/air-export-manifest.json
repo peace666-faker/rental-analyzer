@@ -2,13 +2,13 @@
   "name": "🛫 空运出口工作台",
   "short_name": "空运工作台",
   "description": "空运出口一票到底 — 防漏预报、防漏打卡、防漏结算",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#f5f6f8",
   "theme_color": "#1a1a2e",
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]
 }
