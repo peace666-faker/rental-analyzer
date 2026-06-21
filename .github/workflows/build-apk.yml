@@ -25,10 +25,16 @@ jobs:
         with:
           packages: 'platforms;android-34 build-tools;34.0.0'
 
+      - name: Show SDK path
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          ls -la $ANDROID_HOME/platforms/ 2>/dev/null || echo "no platforms"
+          ls -la $ANDROID_HOME/build-tools/ 2>/dev/null || echo "no build-tools"
+
       - name: Create local.properties
         run: |
-          echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
-          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
       - name: Install Gradle 8.5
         run: |
@@ -37,12 +43,22 @@ jobs:
           echo "$PWD/gradle-8.5/bin" >> $GITHUB_PATH
 
       - name: Build debug APK
+        id: build
         run: |
           cd android
-          gradle assembleDebug --stacktrace
+          gradle assembleDebug --stacktrace 2>&1 | tee build.log
+        continue-on-error: true
 
-      - name: Upload APK
+      - name: Upload build log
         uses: actions/upload-artifact@v4
+        if: steps.build.outcome == 'failure'
+        with:
+          name: build-error-log
+          path: android/build.log
+
+      - name: Upload APK (if built)
+        uses: actions/upload-artifact@v4
+        if: steps.build.outcome == 'success'
         with:
           name: air-export-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
