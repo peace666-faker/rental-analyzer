@@ -365,65 +365,94 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
   </div>
 
   <!-- dcaplanplaceholder -->
-    <div style="background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;padding:10px 18px;border-radius:8px;margin-bottom:12px;font-size:13px;display:flex;align-items:center;gap:10px"><span>🤖 上周 TradingAgents-CN 分析结论：</span><strong>A股储能/机器人/稀土 三主线加倍，有色金属暂停等企稳，日本美股正常定投</strong></div>
+  <div id="dca-plan" class="panel active">
 
-    <div class="card" style="border-left:4px solid #22c55e">
-      <div class="card-title" style="justify-content:space-between">
-        <span>📅 定投方案 · ¥2000/月 · 10行业轮动 · 🤖 TradingAgents-CN 分析</span>
-        <span style="font-size:12px;color:var(--sub)">📡 实时数据 2026.06.26-27 | 下月复盘：7月14日CPI + 7月28日FOMC</span>
-      </div>
-      <div style="overflow-x:auto">
-        
-<tr style="background:#f0fdf4"><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('026266')">026266</td><td>🔋 储能电池</td><td>1.0437</td><td style="color:#22c55e;font-weight:600">-3.91%</td><td style="font-size:12px">📈 中期↑</td><td>🟢 加倍</td><td style="font-weight:700;color:#22c55e">¥400</td><td style="font-size:11px;color:var(--sub)">-3.91% → 触发加倍</td></tr><tr style="background:#f0fdf4"><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('020290')">020290</td><td>🤖 机器人</td><td>1.5076</td><td style="color:#22c55e;font-weight:600">-3.89%</td><td style="font-size:12px">📉 短期↓</td><td>🟢 加倍</td><td style="font-weight:700;color:#22c55e">¥300</td><td style="font-size:11px;color:var(--sub)">-3.89% → 触发加倍</td></tr><tr style="background:#f0fdf4"><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('011036')">011036</td><td>🪨 稀土</td><td>1.4332</td><td style="color:#22c55e;font-weight:600">-3.91%</td><td style="font-size:12px">📈 政策↑</td><td>🟢 加倍</td><td style="font-weight:700;color:#22c55e">¥300</td><td style="font-size:11px;color:var(--sub)">-3.91% → 加倍（昨日正常）</td></tr><tr><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('002611')">002611</td><td>🥇 黄金</td><td>2.7500</td><td style="color:#ef4444;font-weight:600">+1.00%</td><td style="font-size:12px">📊 筑底→</td><td>🟡 正常</td><td style="font-weight:700;">¥250</td><td style="font-size:11px;color:var(--sub)">金价000附近企稳</td></tr><tr><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('017641')">017641</td><td>🇺🇸 标普500</td><td>1.6461</td><td style="color:#22c55e;font-weight:600">-0.08%</td><td style="font-size:12px">📈 长期↑</td><td>🟡 正常</td><td style="font-weight:700;">¥200</td><td style="font-size:11px;color:var(--sub)">美股正常定投</td></tr><tr><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('007280')">007280</td><td>🗾 日本</td><td>2.3317</td><td style="color:#ef4444;font-weight:600">—</td><td style="font-size:12px">📈 中期↑</td><td>🟡 正常</td><td style="font-weight:700;">¥200</td><td style="font-size:11px;color:var(--sub)">合并A/C，统一投A类</td></tr><tr style="background:#f0fdf4"><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('000614')">000614</td><td>🇪🇺 德国DAX</td><td>1.9100</td><td style="color:#ef4444;font-weight:600">—</td><td style="font-size:12px">📊 筑底→</td><td>🟢 加倍</td><td style="font-weight:700;color:#22c55e">¥200</td><td style="font-size:11px;color:var(--sub)">基数¥100×2，欧洲补配</td></tr><tr><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('008764')">008764</td><td>🇻🇳 越南</td><td>1.6000</td><td style="color:#ef4444;font-weight:600">—</td><td style="font-size:12px">📊 横盘→</td><td>🟡 正常</td><td style="font-weight:700;">¥100</td><td style="font-size:11px;color:var(--sub)">基数¥100，新兴前沿</td></tr><tr style="background:#fffbeb"><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('012922')">012922</td><td>🌍 全球成长</td><td>5.1693</td><td style="color:#22c55e;font-weight:600">-0.04%</td><td style="font-size:12px">📈 长期↑</td><td>⏸️ 暂停</td><td style="font-weight:700;color:#ef4444">¥10</td><td style="font-size:11px;color:var(--sub)">限购单日10元</td></tr><tr style="background:#fef2f2"><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('017193')">017193</td><td>🪨 有色金属</td><td>1.8400</td><td style="color:#22c55e;font-weight:600">-4.44%</td><td style="font-size:12px">📉 暴跌↓</td><td>⏸️ 暂停</td><td style="font-weight:700;color:#ef4444">¥0</td><td style="font-size:11px;color:var(--sub)">连续暴跌未企稳</td></tr>
-</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px">
-        <div style="background:#f0fdf4;padding:12px;border-radius:8px;border:1px solid #bbf7d0">
-          <div style="font-weight:700;color:#166534;font-size:15px">🟢 加倍 ×1.5-2</div>
-          <div style="font-size:11px;color:var(--sub);margin-top:4px">回撤>5% 或 政策刚发布 或 低位横盘</div>
+    <!-- 标题横幅 -->
+    <div style="background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;padding:16px 20px;border-radius:var(--radius);margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <div>
+          <h2 style="margin:0;font-size:20px">📅 定投方案 · ¥2,000/月 · 10行业轮动</h2>
+          <div style="font-size:12px;opacity:0.8;margin-top:4px">更新: 2026.06.28 · 下月复盘: 7/14 CPI + 7/28 FOMC</div>
         </div>
-        <div style="background:#fffbeb;padding:12px;border-radius:8px;border:1px solid #fde68a">
-          <div style="font-weight:700;color:#92400e;font-size:15px">🟡 正常 ×1</div>
-          <div style="font-size:11px;color:var(--sub);margin-top:4px">正常波动区间，按基数¥200投</div>
-        </div>
-        <div style="background:#fef2f2;padding:12px;border-radius:8px;border:1px solid #fecaca">
-          <div style="font-weight:700;color:#dc2626;font-size:15px">⏸️ 暂停 ×0</div>
-          <div style="font-size:11px;color:var(--sub);margin-top:4px">单月涨>5% 或 限购 或 行业逆风</div>
-        </div>
-        <div style="background:#eff6ff;padding:12px;border-radius:8px;border:1px solid #bfdbfe">
-          <div style="font-weight:700;color:#1e40af;font-size:15px">💡 机动储备</div>
-          <div style="font-size:11px;color:var(--sub);margin-top:4px">暂停释出的¥汇聚为机动资金</div>
+        <div style="display:flex;gap:6px">
+          <span style="background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:12px;font-size:11px">🤖 TradingAgents-CN</span>
+          <span style="background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:12px;font-size:11px">📊 规则引擎</span>
         </div>
       </div>
     </div>
 
+    <!-- 双分析摘要 -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;margin-bottom:14px">
+      <div style="background:#f0fdf4;border-left:4px solid #22c55e;border-radius:8px;padding:12px 14px">
+        <div style="font-weight:700;font-size:14px;color:#166534;margin-bottom:4px">🤖 TradingAgents-CN 本周判断</div>
+        <div style="font-size:12px;color:#166534;line-height:1.6">
+          储能/机器人/稀土 <strong>最优先加倍</strong>（政策主线+回调>3%）<br>
+          美股标普<strong>正常定投</strong>（长期趋势未破）<br>
+          有色金属<strong>暂停</strong>（连续暴跌-14%未企稳）<br>
+          全球成长<strong>限购¥10</strong>（AI高估+限购）
+        </div>
+      </div>
+      <div style="background:#eff6ff;border-left:4px solid #3b82f6;border-radius:8px;padding:12px 14px">
+        <div style="font-weight:700;font-size:14px;color:#1e40af;margin-bottom:4px">📊 规则引擎 轮动信号</div>
+        <div style="font-size:12px;color:#1e40af;line-height:1.6">
+          3只🟢加倍: 储能-3.91% / 机器人-3.89% / 稀土-3.91%<br>
+          2只⏸️暂停: 有色-4.44% / 全球限购<br>
+          5只🟡正常定投 · 总计¥1,960 / ¥2,000预算
+        </div>
+      </div>
+    </div>
+
+    <!-- 主表格 -->
     <div class="card">
-      <div class="card-title">📊 行业分布</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;font-size:13px">
-        <div>🔋 储能 <strong style="color:#22c55e">¥400</strong> <span style="font-size:10px;color:var(--sub)">20%</span></div>
-        <div>🤖 机器人 <strong style="color:#22c55e">¥300</strong> <span style="font-size:10px;color:var(--sub)">15%</span></div>
-        <div>🥇 黄金 <strong style="color:#22c55e">¥250</strong> <span style="font-size:10px;color:var(--sub)">13%</span></div>
-        <div>🇺🇸 标普500 <strong>¥200</strong> <span style="font-size:10px;color:var(--sub)">10%</span></div>
-        <div>🗾 日本 <strong>¥200</strong> <span style="font-size:10px;color:var(--sub)">10%</span></div>
-        <div>🪨 稀土 <strong>¥200</strong> <span style="font-size:10px;color:var(--sub)">10%</span></div>
-        <div>🇪🇺 欧洲 <strong>¥200</strong> <span style="font-size:10px;color:var(--sub)">10%</span></div>
-        <div>🇻🇳 越南 <strong>¥100</strong> <span style="font-size:10px;color:var(--sub)">5%</span></div>
-        <div>🌍 全球 <strong style="color:#f59e0b">¥10</strong> <span style="font-size:10px;color:var(--sub)">1%</span></div>
-        <div>💡 机动 <strong style="color:#3b82f6">¥140</strong> <span style="font-size:10px;color:var(--sub)">7%</span></div>
+      <div style="overflow-x:auto">
+        <table class="watchlist-table" style="font-size:13px">
+          <thead><tr><th>#</th><th>代码</th><th>行业</th><th>净值</th><th>涨跌</th><th>趋势</th><th>信号</th><th>本月定投</th><th>调整理由</th><th>来源</th></tr></thead>
+          <tbody>
+            <tr style="background:#f0fdf4"><td>1</td><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('026266')">026266</td><td>🔋 储能电池</td><td>1.0437</td><td style="color:#22c55e;font-weight:600">-3.91%</td><td style="font-size:12px">📈 中期↑</td><td style="font-weight:600;color:#22c55e">🟢 加倍</td><td style="font-weight:700;color:#22c55e;font-size:15px">¥400</td><td style="font-size:11px;color:var(--sub)">-3.91%→触发加倍规则</td><td style="font-size:10px"><span style="background:#eff6ff;padding:2px 5px;border-radius:8px">TA</span> <span style="background:#f0fdf4;padding:2px 5px;border-radius:8px">FIA</span></td></tr>
+            <tr style="background:#f0fdf4"><td>2</td><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('020290')">020290</td><td>🤖 机器人</td><td>1.5076</td><td style="color:#22c55e;font-weight:600">-3.89%</td><td style="font-size:12px">📉 短期↓</td><td style="font-weight:600;color:#22c55e">🟢 加倍</td><td style="font-weight:700;color:#22c55e;font-size:15px">¥300</td><td style="font-size:11px;color:var(--sub)">-3.89%→触发加倍规则</td><td style="font-size:10px"><span style="background:#eff6ff;padding:2px 5px;border-radius:8px">TA</span> <span style="background:#f0fdf4;padding:2px 5px;border-radius:8px">FIA</span></td></tr>
+            <tr style="background:#f0fdf4"><td>3</td><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('011036')">011036</td><td>🪨 稀土</td><td>1.4332</td><td style="color:#22c55e;font-weight:600">-3.91%</td><td style="font-size:12px">📈 政策↑</td><td style="font-weight:600;color:#22c55e">🟢 加倍</td><td style="font-weight:700;color:#22c55e;font-size:15px">¥300</td><td style="font-size:11px;color:var(--sub)">-3.91% → 政策主线+回调</td><td style="font-size:10px"><span style="background:#eff6ff;padding:2px 5px;border-radius:8px">TA</span> <span style="background:#f0fdf4;padding:2px 5px;border-radius:8px">FIA</span></td></tr>
+            <tr><td>4</td><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('002611')">002611</td><td>🥇 黄金</td><td>2.7500</td><td style="color:#ef4444;font-weight:600">+1.00%</td><td style="font-size:12px">📊 筑底→</td><td style="font-weight:600;color:#f59e0b">🟡 正常</td><td style="font-weight:700;font-size:15px">¥250</td><td style="font-size:11px;color:var(--sub)">金价$4,000央行托底</td><td style="font-size:10px"><span style="background:#eff6ff;padding:2px 5px;border-radius:8px">TA</span></td></tr>
+            <tr><td>5</td><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('017641')">017641</td><td>🇺🇸 标普500</td><td>1.6461</td><td style="color:#22c55e;font-weight:600">-0.08%</td><td style="font-size:12px">📈 长期↑</td><td style="font-weight:600;color:#f59e0b">🟡 正常</td><td style="font-weight:700;font-size:15px">¥200</td><td style="font-size:11px;color:var(--sub)">美股底仓正常定投</td><td style="font-size:10px"><span style="background:#eff6ff;padding:2px 5px;border-radius:8px">TA</span></td></tr>
+            <tr><td>6</td><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('007280')">007280</td><td>🗾 日本</td><td>2.3317</td><td style="color:var(--sub)">—</td><td style="font-size:12px">📈 中期↑</td><td style="font-weight:600;color:#f59e0b">🟡 正常</td><td style="font-weight:700;font-size:15px">¥200</td><td style="font-size:11px;color:var(--sub)">合并A/C，统一投A类</td><td style="font-size:10px"><span style="background:#eff6ff;padding:2px 5px;border-radius:8px">TA</span></td></tr>
+            <tr style="background:#f0fdf4"><td>7</td><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('000614')">000614</td><td>🇪🇺 德国DAX</td><td>1.9100</td><td style="color:var(--sub)">—</td><td style="font-size:12px">📊 筑底→</td><td style="font-weight:600;color:#22c55e">🟢 加倍</td><td style="font-weight:700;color:#22c55e;font-size:15px">¥200</td><td style="font-size:11px;color:var(--sub)">基数¥100×2，欧洲补配</td><td style="font-size:10px"><span style="background:#eff6ff;padding:2px 5px;border-radius:8px">TA</span></td></tr>
+            <tr><td>8</td><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('008764')">008764</td><td>🇻🇳 越南</td><td>1.6000</td><td style="color:var(--sub)">—</td><td style="font-size:12px">📊 横盘→</td><td style="font-weight:600;color:#f59e0b">🟡 正常</td><td style="font-weight:700;font-size:15px">¥100</td><td style="font-size:11px;color:var(--sub)">基数¥100，新兴前沿</td><td style="font-size:10px"><span style="background:#eff6ff;padding:2px 5px;border-radius:8px">TA</span></td></tr>
+            <tr style="background:#fffbeb"><td>9</td><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('012922')">012922</td><td>🌍 全球成长</td><td>5.1693</td><td style="color:#22c55e;font-weight:600">-0.04%</td><td style="font-size:12px">📈 长期↑</td><td style="font-weight:600;color:#f59e0b">⏸️ 暂停</td><td style="font-weight:700;color:#f59e0b;font-size:15px">¥10</td><td style="font-size:11px;color:var(--sub)">AI高估+限购单日10元</td><td style="font-size:10px"><span style="background:#eff6ff;padding:2px 5px;border-radius:8px">TA</span></td></tr>
+            <tr style="background:#fef2f2"><td>10</td><td style="font-weight:600;color:var(--sub)">017193</td><td>🪨 有色金属</td><td>1.8400</td><td style="color:#22c55e;font-weight:600">-4.44%</td><td style="font-size:12px">📉 暴跌↓</td><td style="font-weight:600;color:#ef4444">⏸️ 暂停</td><td style="font-weight:700;color:#ef4444;font-size:15px">¥0</td><td style="font-size:11px;color:var(--sub)">4天-14%未企稳</td><td style="font-size:10px"><span style="background:#eff6ff;padding:2px 5px;border-radius:8px">TA</span> <span style="background:#f0fdf4;padding:2px 5px;border-radius:8px">FIA</span></td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
+    <!-- 图例 -->
+    <div style="display:flex;gap:14px;margin-top:12px;flex-wrap:wrap;font-size:11px;color:var(--sub);align-items:center">
+      <span>来源：</span>
+      <span style="background:#eff6ff;padding:3px 8px;border-radius:10px"><strong>TA</strong> = TradingAgents-CN（周度·15Agent辩论）</span>
+      <span style="background:#f0fdf4;padding:3px 8px;border-radius:10px"><strong>FIA</strong> = fund-investment-analysis（每日·规则引擎）</span>
+      <span style="margin-left:auto">总计: <strong>¥1,960</strong>/2,000 | 机动: <strong>¥40</strong></span>
+    </div>
+
+    <!-- 轮动规则 -->
+    <div class="card" style="margin-top:14px">
+      <div class="card-title">🔄 轮动规则</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px">
+        <div style="background:#f0fdf4;padding:10px 12px;border-radius:8px;border:1px solid #bbf7d0"><div style="font-weight:700;color:#166534;font-size:14px">🟢 加倍 ×1.5-2</div><div style="font-size:11px;color:var(--sub);margin-top:3px">跌>3% 或 政策刚发布 或 低位横盘</div></div>
+        <div style="background:#fffbeb;padding:10px 12px;border-radius:8px;border:1px solid #fde68a"><div style="font-weight:700;color:#92400e;font-size:14px">🟡 正常 ×1</div><div style="font-size:11px;color:var(--sub);margin-top:3px">正常波动，按基数投</div></div>
+        <div style="background:#fef2f2;padding:10px 12px;border-radius:8px;border:1px solid #fecaca"><div style="font-weight:700;color:#dc2626;font-size:14px">⏸️ 暂停 ×0</div><div style="font-size:11px;color:var(--sub);margin-top:3px">涨>5% 或 限购 或 逆风</div></div>
+        <div style="background:#eff6ff;padding:10px 12px;border-radius:8px;border:1px solid #bfdbfe"><div style="font-weight:700;color:#1e40af;font-size:14px">💡 机动储备</div><div style="font-size:11px;color:var(--sub);margin-top:3px">暂停¥汇聚为机动</div></div>
+      </div>
+    </div>
+
+    <!-- 7月复盘 -->
     <div class="card">
       <div class="card-title">📅 7月复盘节点</div>
       <div class="timeline">
-        <div class="timeline-item"><div class="tl-date">7月14日</div><div class="tl-title">🇺🇸 美国CPI公布</div><div class="tl-desc">通胀回落→维持标普权重；通胀再升→暂停标普定投转黄金</div></div>
-        <div class="timeline-item"><div class="tl-date">7月28日</div><div class="tl-title">🇺🇸 FOMC议息会议</div><div class="tl-desc">加息→美股QDII全部暂停；不加息→恢复标普正常定投</div></div>
-        <div class="timeline-item"><div class="tl-date">7月中旬</div><div class="tl-title">📊 A股半年报预告</div><div class="tl-desc">储能/机器人/稀土业绩验证，超预期→下月加倍，低预期→暂停</div></div>
-        <div class="timeline-item"><div class="tl-date">每日</div><div class="tl-title">📱 打开工作台看估值</div><div class="tl-desc">切换「我的持仓」Tab → 看实时涨跌 → 跌多下月多投</div></div>
+        <div class="timeline-item"><div class="tl-date">7月14日</div><div class="tl-title">🇺🇸 美国CPI公布</div><div class="tl-desc">通胀回落→标普正常；再升→暂停标普转黄金</div></div>
+        <div class="timeline-item"><div class="tl-date">7月28日</div><div class="tl-title">🇺🇸 FOMC议息</div><div class="tl-desc">加息→美股QDII全停；不加息→恢复正常</div></div>
+        <div class="timeline-item"><div class="tl-date">7月中旬</div><div class="tl-title">📊 A股半年报预告</div><div class="tl-desc">储能/机器人/稀土业绩验证</div></div>
       </div>
     </div>
   </div>
 
-  
 <!-- 定投计算器 -->
   <div id="dca" class="panel">
     <div class="card">
