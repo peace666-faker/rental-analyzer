@@ -1,0 +1,2751 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📊 基金分析工作台</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --text: #1e293b;
+  --sub: #64748b;
+  --border: #e2e8f0;
+  --primary: #3b82f6;
+  --danger: #ef4444;
+  --success: #22c55e;
+  --warn: #f59e0b;
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;padding:16px 24px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.header h1{font-size:22px;font-weight:700}
+.header .sub{font-size:12px;opacity:.75;margin-top:2px}
+.search-box{display:flex;gap:8px;margin-top:12px;max-width:600px}
+.search-box input{flex:1;padding:10px 16px;border:none;border-radius:8px;font-size:15px;outline:none}
+.search-box button{padding:10px 20px;background:#f59e0b;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap}
+.search-box button:hover{background:#d97706}
+.tabs{display:flex;gap:0;background:var(--card);border-bottom:2px solid var(--border);padding:0 24px;overflow-x:auto;position:sticky;top:98px;z-index:99}
+.tab{padding:12px 20px;font-size:14px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--sub);white-space:nowrap;transition:all .15s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+.content{padding:20px 24px;max-width:1200px;margin:0 auto}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:16px}
+.card-title{font-size:16px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.search-results{max-height:400px;overflow-y:auto}
+.search-item{padding:12px 16px;border-radius:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:background .15s}
+.search-item:hover{background:#f1f5f9}
+.search-item .code{font-weight:700;color:var(--primary)}
+.search-item .name{color:var(--text)}
+.search-item .type{font-size:12px;color:var(--sub);background:#f1f5f9;padding:2px 8px;border-radius:4px}
+.metrics{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.metric{background:#f8fafc;padding:12px 16px;border-radius:8px;border:1px solid var(--border)}
+.metric .label{font-size:12px;color:var(--sub)}
+.metric .value{font-size:20px;font-weight:700;margin-top:4px}
+.metric .value.up{color:var(--danger)}
+.metric .value.down{color:var(--success)}
+.chart-container{position:relative;height:320px;width:100%}
+.watchlist-table{width:100%;border-collapse:collapse}
+.watchlist-table th{text-align:left;padding:10px 12px;font-size:12px;color:var(--sub);font-weight:600;border-bottom:2px solid var(--border)}
+.watchlist-table td{padding:10px 12px;font-size:14px;border-bottom:1px solid var(--border)}
+.watchlist-table tr:hover{background:#f8fafc}
+.btn{padding:8px 16px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:#2563eb}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-danger:hover{background:#dc2626}
+.btn-sm{padding:4px 10px;font-size:12px}
+.btn-outline{background:#fff;color:var(--primary);border:1px solid var(--primary)}
+.btn-outline:hover{background:#eff6ff}
+.rank-table{width:100%;border-collapse:collapse;font-size:14px}
+.rank-table th{text-align:left;padding:8px 12px;font-size:12px;color:var(--sub);font-weight:600;border-bottom:2px solid var(--border);position:sticky;top:0;background:#fff}
+.rank-table td{padding:8px 12px;border-bottom:1px solid var(--border)}
+.rank-table tr:hover{background:#f8fafc}
+.rank-table .rank-num{width:30px;text-align:center;font-weight:700;font-size:16px}
+.dca-calc{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:640px){.dca-calc{grid-template-columns:1fr}}
+.dca-calc .input-group{margin-bottom:12px}
+.dca-calc label{display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--sub)}
+.dca-calc input,.dca-calc select{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px}
+.dca-calc .result{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px}
+.dca-calc .result .big{font-size:28px;font-weight:700;color:#166534}
+.compare-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.compare-card{border:1px solid var(--border);border-radius:8px;padding:16px;position:relative}
+.compare-card .remove{position:absolute;top:8px;right:8px;cursor:pointer;color:var(--sub);font-size:18px}
+.compare-card .remove:hover{color:var(--danger)}
+.empty{text-align:center;padding:40px;color:var(--sub)}
+.empty .icon{font-size:48px;margin-bottom:12px}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 24px;border-radius:20px;font-size:14px;z-index:9999;animation:toastIn .3s ease}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid #ccc;border-top-color:var(--primary);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading{text-align:center;padding:40px;color:var(--sub)}
+.cmp-add{display:flex;gap:8px;margin-bottom:16px;max-width:500px}
+.cmp-add input{flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px}
+.panel{display:none}
+.panel.active{display:block}
+.policy-header{background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;padding:24px;border-radius:var(--radius);margin-bottom:16px}
+.policy-header h2{font-size:20px;margin-bottom:4px}
+.policy-header .subtitle{font-size:13px;opacity:.85}
+.policy-threads{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+.thread-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;border-left:4px solid #dc2626}
+.thread-card.t2{border-left-color:#3b82f6}
+.thread-card.t3{border-left-color:#22c55e}
+.thread-card .th{background:#fef2f2;padding:14px 16px;font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px}
+.thread-card.t2 .th{background:#eff6ff}
+.thread-card.t3 .th{background:#f0fdf4}
+.thread-card .tb{padding:14px 16px;font-size:13px;line-height:1.8;color:var(--sub)}
+.thread-card .tb .sector-tag{display:inline-block;background:#f1f5f9;padding:3px 10px;border-radius:12px;margin:3px 4px;font-size:12px;cursor:pointer;transition:all .15s}
+.thread-card .tb .sector-tag:hover{background:var(--primary);color:#fff}
+.sector-fund-table{width:100%;border-collapse:collapse;font-size:13px}
+.sector-fund-table th{text-align:left;padding:8px 10px;font-size:11px;color:var(--sub);font-weight:600;border-bottom:2px solid var(--border);background:#fafafa}
+.sector-fund-table td{padding:8px 10px;border-bottom:1px solid var(--border)}
+.sector-fund-table .fund-link{color:var(--primary);font-weight:600;cursor:pointer}
+.sector-fund-table .fund-link:hover{text-decoration:underline}
+.timeline{position:relative;padding-left:28px}
+.timeline::before{content:'';position:absolute;left:10px;top:8px;bottom:8px;width:2px;background:var(--border)}
+.timeline-item{position:relative;margin-bottom:20px}
+.timeline-item::before{content:'';position:absolute;left:-18px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--primary);border:2px solid #fff;box-shadow:0 0 0 2px var(--primary)}
+.timeline-item .tl-date{font-size:11px;color:var(--sub);margin-bottom:2px}
+.timeline-item .tl-title{font-weight:600;font-size:14px;margin-bottom:4px}
+.timeline-item .tl-desc{font-size:12px;color:var(--sub);line-height:1.6}
+.value-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:768px){.value-grid{grid-template-columns:1fr}}
+.value-metric-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.value-metric-row .vlabel{font-size:13px;color:var(--sub)}
+.value-metric-row .vval{font-size:15px;font-weight:700}
+.value-metric-row .vval.good{color:#166534}
+.value-metric-row .vval.warn{color:#f59e0b}
+.value-metric-row .vval.bad{color:#dc2626}
+.score-circle{width:120px;height:120px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto;font-weight:700;border:8px solid}
+.score-circle.excellent{border-color:#22c55e;color:#166534}
+.score-circle.good{border-color:#3b82f6;color:#1e40af}
+.score-circle.fair{border-color:#f59e0b;color:#92400e}
+.score-circle.poor{border-color:#ef4444;color:#dc2626}
+.score-circle .sc{font-size:36px;line-height:1}
+.score-circle .sl{font-size:11px;color:var(--sub)}
+.checklist-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.checklist-item .icon{font-size:18px}
+.dcf-inputs{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.dcf-inputs .field label{display:block;font-size:12px;font-weight:600;color:var(--sub);margin-bottom:3px}
+.dcf-inputs .field input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px}
+.principles-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.principle-card{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:14px}
+.principle-card.munger{background:#eff6ff;border-color:#bfdbfe}
+.principle-card .pq{font-size:14px;font-weight:700;margin-bottom:4px}
+.principle-card .pa{font-size:12px;color:var(--sub);line-height:1.6}
+.market-search-box{display:flex;gap:8px;margin-bottom:16px}
+.market-search-box input{flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:15px}
+.market-search-box select{padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:#fff}
+.market-badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.market-badge{padding:5px 12px;border-radius:14px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:#fff;transition:all .15s}
+.market-badge:hover{background:var(--primary);color:#fff;border-color:var(--primary)}
+.market-badge.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.copy-btn{display:inline-flex;align-items:center;gap:2px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;font-size:11px;cursor:pointer;background:#fff;color:var(--sub);transition:all .15s}
+.copy-btn:hover{background:#f0fdf4;border-color:#86efac;color:#166534}
+.copy-btn.copied{background:#dcfce7;border-color:#22c55e;color:#166534}
+.alipay-link{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border:1px solid #1677ff;border-radius:4px;font-size:11px;cursor:pointer;background:#f0f7ff;color:#1677ff;text-decoration:none;transition:all .15s}
+.alipay-link:hover{background:#1677ff;color:#fff}
+.sync-card{border:2px dashed #1677ff;border-radius:var(--radius);padding:16px;background:#f8faff}
+.sync-fund-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e8f0fe}
+.sync-fund-row:last-child{border-bottom:none}
+.news-item { padding:10px 12px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.15s; display:flex;gap:10px;align-items:flex-start; }
+.news-item:hover { background:var(--bg); }
+.news-source { font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;white-space:nowrap;flex-shrink:0;margin-top:2px; }
+.news-source.nyt { background:#fef2f2;color:#dc2626; }
+.news-source.dw { background:#eff6ff;color:#2563eb; }
+.news-source.cna { background:#f0fdf4;color:#16a34a; }
+.news-source.zaobao { background:#fefce8;color:#ca8a04; }
+.news-source.kyodo { background:#faf5ff;color:#9333ea; }
+.news-title { font-size:13px;line-height:1.4;color:var(--text);flex:1; }
+.news-date { font-size:10px;color:var(--sub);white-space:nowrap;flex-shrink:0; }
+.news-tag { font-size:9px;padding:1px 5px;border-radius:3px;font-weight:600;white-space:nowrap; }
+.news-tag.market { background:#dcfce7;color:#166534; }
+.news-tag.policy { background:#e0e7ff;color:#3730a3; }
+.news-tag.tech { background:#fce7f3;color:#9d174d; }
+.news-tag.geopolitics { background:#fee2e2;color:#991b1b; }
+.news-tag.energy { background:#fef3c7;color:#92400e; }
+.news-filter { font-size:12px;padding:4px 10px;border-radius:15px;background:var(--bg);cursor:pointer;border:1px solid var(--border);transition:all 0.15s;user-select:none; }
+.news-filter:hover { border-color:var(--primary); }
+.news-filter.active { background:var(--primary);color:#fff;border-color:var(--primary); }
+
+
+.news-item { padding:10px 12px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.15s; display:flex;gap:10px;align-items:flex-start; }
+.news-item:hover { background:var(--bg); }
+.news-source { font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;white-space:nowrap;flex-shrink:0;margin-top:2px; }
+.news-source.nyt { background:#fef2f2;color:#dc2626; }
+.news-source.dw { background:#eff6ff;color:#2563eb; }
+.news-source.cna { background:#f0fdf4;color:#16a34a; }
+.news-source.zaobao { background:#fefce8;color:#ca8a04; }
+.news-source.kyodo { background:#faf5ff;color:#9333ea; }
+.news-title { font-size:13px;line-height:1.4;color:var(--text);flex:1; }
+.news-date { font-size:10px;color:var(--sub);white-space:nowrap;flex-shrink:0; }
+.news-tag { font-size:9px;padding:1px 5px;border-radius:3px;font-weight:600;white-space:nowrap; }
+.news-tag.market { background:#dcfce7;color:#166534; }
+.news-tag.policy { background:#e0e7ff;color:#3730a3; }
+.news-tag.tech { background:#fce7f3;color:#9d174d; }
+.news-tag.geopolitics { background:#fee2e2;color:#991b1b; }
+.news-tag.energy { background:#fef3c7;color:#92400e; }
+.news-filter { font-size:12px;padding:4px 10px;border-radius:15px;background:var(--bg);cursor:pointer;border:1px solid var(--border);transition:all 0.15s;user-select:none; }
+.news-filter:hover { border-color:var(--primary); }
+.news-filter.active { background:var(--primary);color:#fff;border-color:var(--primary); }
+
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📊 基金分析工作台</h1>
+  <div class="sub">数据来源：天天基金 · 东方财富 | 基于 GitHub 开源项目整合</div>
+  <div class="search-box">
+    <input id="searchInput" type="text" placeholder="输入基金代码或名称搜索（如：000001、沪深300）" onkeydown="if(event.key==='Enter')searchFund()">
+    <button onclick="searchFund()">🔍 搜索</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-panel="watchlist">💼 我的持仓</div>
+  <div class="tab" data-panel="dca-plan">📅 定投方案</div>
+	  <div class="tab" data-panel="news">📰 全球热点</div>
+  <div class="tab" data-panel="detail">📋 基金详情</div>
+  <div class="tab" data-panel="ranking">🏆 基金排行</div>
+  <div class="tab" data-panel="compare">⚖️ 基金对比</div>
+  <div class="tab" data-panel="dca">💰 定投计算器</div>
+  <div class="tab" data-panel="policy">🏛️ 政策风向</div>
+  <div class="tab" data-panel="global">🌍 全球价值投资</div>
+</div>
+
+<div class="content">
+  <!-- 基金详情 -->
+  <div id="detail" class="panel">
+    <div id="detailEmpty" class="empty"><div class="icon">🔎</div><p>在上方搜索框中输入基金代码或名称开始分析</p></div>
+    <div id="detailContent" style="display:none">
+      <div class="card">
+        <div class="card-title" id="fundTitle"></div>
+        <div class="metrics" id="fundMetrics"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📈 历史净值走势</div>
+        <div class="chart-container"><canvas id="navChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📊 同类排名走势</div>
+        <div class="chart-container"><canvas id="rankChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 基金排行 -->
+  <div id="ranking" class="panel">
+    <div class="card">
+      <div class="card-title" style="justify-content:space-between">
+        <span>🏆 基金排行榜</span>
+        <select id="rankType" onchange="loadRanking()" style="padding:6px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+          <option value="all">全部基金</option>
+          <option value="gp">股票型</option>
+          <option value="hh">混合型</option>
+          <option value="zq">债券型</option>
+          <option value="zs">指数型</option>
+          <option value="qdii">QDII</option>
+        </select>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="rank-table">
+          <thead><tr><th>#</th><th>代码</th><th>名称</th><th>单位净值</th><th>累计净值</th><th>日涨幅</th><th>近1周</th><th>近1月</th><th>近3月</th><th>近1年</th></tr></thead>
+          <tbody id="rankBody"><tr><td colspan="10" class="loading"><span class="spinner"></span> 加载中...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 我的持仓 -->
+  <div id="watchlist" class="panel active">
+    <!-- 持仓汇总 -->
+    <div class="card" style="border-left:4px solid #1677ff" id="portfolioSummary" style="display:none">
+      <div class="card-title">💼 持仓总览</div>
+      <div class="metrics" id="portfolioMetrics"></div>
+    </div>
+
+    <!-- 添加持仓 -->
+    <div class="card">
+      <div class="card-title" style="justify-content:space-between">
+        <span>📥 同步支付宝持仓</span>
+        <span style="font-size:12px;color:var(--sub)">在支付宝查看基金代码和金额，填入下方</span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end">
+        <div style="flex:1;min-width:100px">
+          <label style="font-size:11px;font-weight:600;color:var(--sub)">基金代码</label>
+          <input id="wlInput" type="text" placeholder="如 320007" onkeydown="if(event.key==='Enter')addHolding()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px">
+        </div>
+        <div style="flex:1;min-width:100px">
+          <label style="font-size:11px;font-weight:600;color:var(--sub)">持有金额（元）</label>
+          <input id="wlAmount" type="number" placeholder="如 5000" onkeydown="if(event.key==='Enter')addHolding()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px">
+        </div>
+        <button class="btn btn-primary" onclick="addHolding()">+ 添加持仓</button>
+        <button class="btn btn-outline btn-sm" onclick="refreshPortfolio()">🔄 刷新</button>
+      </div>
+    </div>
+
+
+    <!-- 行业分布 -->
+    <div class="card" id="sectorChartCard" style="display:none">
+      <div class="card-title">🏭 行业持仓分布</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:14px" id="sectorGrid"></div>
+      <div class="chart-container" style="height:300px"><canvas id="sectorChart"></canvas></div>
+    </div>
+
+    <!-- 持仓列表 -->
+    <div class="card">
+      <div class="card-title" style="justify-content:space-between">
+        <span>📊 持仓明细</span>
+        <span style="font-size:12px;color:var(--sub)" id="portfolioCount"></span>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="watchlist-table">
+          <thead><tr><th>代码</th><th>名称</th><th>最新净值</th><th>估算净值</th><th>涨跌幅</th><th>持有金额</th><th>估算市值</th><th>今日盈亏</th><th>持有收益率</th><th>分析信号</th><th>建议仓位</th><th>操作</th></tr></thead>
+          <tbody id="wlBody"><tr><td colspan="12" class="empty">
+            <div class="icon">📥</div>
+            <p>还没有同步持仓</p>
+            <p style="font-size:12px;color:var(--sub)">打开支付宝 → 我的 → 理财 → 基金 → 查看持有基金代码和金额 → 填入上方表单</p>
+          </td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+
+	  <!-- 全球热点新闻 -->
+	  <div id="news" class="panel">
+	    <div class="card" style="border-left:4px solid #f59e0b">
+	      <div class="card-title" style="justify-content:space-between">
+	        <span>📰 全球热点 · 投资参考</span>
+	        <span style="font-size:11px;color:var(--sub)" id="newsUpdateTime"></span>
+	      </div>
+	      <div id="newsFeed" style="max-height:600px;overflow-y:auto">
+	        <div class="loading"><span class="spinner"></span> 加载全球新闻中...</div>
+	      </div>
+	      <div style="margin-top:10px;font-size:11px;color:var(--sub);display:flex;justify-content:space-between;align-items:center">
+	        <span>来源：纽约时报 · 德国之声 · 中央社 · 联合早报 · 共同网 | 每日自动刷新</span>
+	        <button class="btn btn-outline btn-sm" onclick="refreshNews()">🔄 手动刷新</button>
+	      </div>
+	    </div>
+
+	    <div class="card">
+	      <div class="card-title">🏷️ 新闻筛选</div>
+	      <div style="display:flex;gap:6px;flex-wrap:wrap" id="newsFilters">
+	        <span class="news-filter active" data-filter="all" onclick="filterNews('all',this)">全部</span>
+	        <span class="news-filter" data-filter="market" onclick="filterNews('market',this)">📈 市场</span>
+	        <span class="news-filter" data-filter="policy" onclick="filterNews('policy',this)">🏛️ 政策</span>
+	        <span class="news-filter" data-filter="tech" onclick="filterNews('tech',this)">🤖 科技</span>
+	        <span class="news-filter" data-filter="geopolitics" onclick="filterNews('geopolitics',this)">🌐 地缘</span>
+	        <span class="news-filter" data-filter="energy" onclick="filterNews('energy',this)">⚡ 能源</span>
+	      </div>
+	    </div>
+	  </div>
+
+  <!-- 基金对比 -->
+  <div id="compare" class="panel">
+    <div class="card">
+      <div class="card-title">⚖️ 基金对比</div>
+      <div class="cmp-add">
+        <input id="cmpInput" type="text" placeholder="输入基金代码（如 000001）" onkeydown="if(event.key==='Enter')addCompare()">
+        <button class="btn btn-primary btn-sm" onclick="addCompare()">+ 添加对比</button>
+        <span style="font-size:12px;color:var(--sub);align-self:center">最多5只</span>
+      </div>
+      <div class="compare-grid" id="cmpGrid"><div class="empty"><div class="icon">⚖️</div><p>添加基金开始对比</p></div></div>
+      <div id="cmpChart" style="display:none">
+        <div class="card-title">📈 净值走势对比</div>
+        <div class="chart-container"><canvas id="compareChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- dcaplanplaceholder -->
+    <div class="card" style="border-left:4px solid #22c55e">
+      <div class="card-title" style="justify-content:space-between">
+        <span>📅 月度定投方案 · ¥2000/月 · 10行业轮动</span>
+        <span style="font-size:12px;color:var(--sub)">📡 实时数据 2026.06.26-27 | 下月复盘：7月14日CPI + 7月28日FOMC</span>
+      </div>
+      <div style="overflow-x:auto">
+        
+<tr style="background:#f0fdf4"><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('026266')">026266</td><td>🔋 储能电池</td><td>1.0437</td><td style="color:#22c55e;font-weight:600">-3.91%</td><td>🟢 加倍</td><td style="font-weight:700;color:#22c55e">¥400</td><td style="font-size:11px;color:var(--sub)">-3.91% → 触发加倍</td></tr><tr style="background:#f0fdf4"><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('020290')">020290</td><td>🤖 机器人</td><td>1.5076</td><td style="color:#22c55e;font-weight:600">-3.89%</td><td>🟢 加倍</td><td style="font-weight:700;color:#22c55e">¥300</td><td style="font-size:11px;color:var(--sub)">-3.89% → 触发加倍</td></tr><tr style="background:#f0fdf4"><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('011036')">011036</td><td>🪨 稀土</td><td>1.4332</td><td style="color:#22c55e;font-weight:600">-3.91%</td><td>🟢 加倍</td><td style="font-weight:700;color:#22c55e">¥300</td><td style="font-size:11px;color:var(--sub)">-3.91% → 加倍（昨日正常）</td></tr><tr><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('002611')">002611</td><td>🥇 黄金</td><td>2.7500</td><td style="color:#ef4444;font-weight:600">+1.00%</td><td>🟡 正常</td><td style="font-weight:700;">¥250</td><td style="font-size:11px;color:var(--sub)">金价000附近企稳</td></tr><tr><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('017641')">017641</td><td>🇺🇸 标普500</td><td>1.6461</td><td style="color:#22c55e;font-weight:600">-0.08%</td><td>🟡 正常</td><td style="font-weight:700;">¥200</td><td style="font-size:11px;color:var(--sub)">美股正常定投</td></tr><tr><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('007280')">007280</td><td>🗾 日本</td><td>2.3317</td><td style="color:#ef4444;font-weight:600">—</td><td>🟡 正常</td><td style="font-weight:700;">¥200</td><td style="font-size:11px;color:var(--sub)">合并A/C，统一投A类</td></tr><tr style="background:#f0fdf4"><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('000614')">000614</td><td>🇪🇺 德国DAX</td><td>1.9100</td><td style="color:#ef4444;font-weight:600">—</td><td>🟢 加倍</td><td style="font-weight:700;color:#22c55e">¥200</td><td style="font-size:11px;color:var(--sub)">基数¥100×2，欧洲补配</td></tr><tr><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('008764')">008764</td><td>🇻🇳 越南</td><td>1.6000</td><td style="color:#ef4444;font-weight:600">—</td><td>🟡 正常</td><td style="font-weight:700;">¥100</td><td style="font-size:11px;color:var(--sub)">基数¥100，新兴前沿</td></tr><tr style="background:#fffbeb"><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('012922')">012922</td><td>🌍 全球成长</td><td>5.1693</td><td style="color:#22c55e;font-weight:600">-0.04%</td><td>⏸️ 暂停</td><td style="font-weight:700;color:#ef4444">¥10</td><td style="font-size:11px;color:var(--sub)">限购单日10元</td></tr><tr style="background:#fef2f2"><td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab('detail');loadFundDetail('017193')">017193</td><td>🪨 有色金属</td><td>1.8400</td><td style="color:#22c55e;font-weight:600">-4.44%</td><td>⏸️ 暂停</td><td style="font-weight:700;color:#ef4444">¥0</td><td style="font-size:11px;color:var(--sub)">连续暴跌未企稳</td></tr>
+</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px">
+        <div style="background:#f0fdf4;padding:12px;border-radius:8px;border:1px solid #bbf7d0">
+          <div style="font-weight:700;color:#166534;font-size:15px">🟢 加倍 ×1.5-2</div>
+          <div style="font-size:11px;color:var(--sub);margin-top:4px">回撤>5% 或 政策刚发布 或 低位横盘</div>
+        </div>
+        <div style="background:#fffbeb;padding:12px;border-radius:8px;border:1px solid #fde68a">
+          <div style="font-weight:700;color:#92400e;font-size:15px">🟡 正常 ×1</div>
+          <div style="font-size:11px;color:var(--sub);margin-top:4px">正常波动区间，按基数¥200投</div>
+        </div>
+        <div style="background:#fef2f2;padding:12px;border-radius:8px;border:1px solid #fecaca">
+          <div style="font-weight:700;color:#dc2626;font-size:15px">⏸️ 暂停 ×0</div>
+          <div style="font-size:11px;color:var(--sub);margin-top:4px">单月涨>5% 或 限购 或 行业逆风</div>
+        </div>
+        <div style="background:#eff6ff;padding:12px;border-radius:8px;border:1px solid #bfdbfe">
+          <div style="font-weight:700;color:#1e40af;font-size:15px">💡 机动储备</div>
+          <div style="font-size:11px;color:var(--sub);margin-top:4px">暂停释出的¥汇聚为机动资金</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📊 行业分布</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;font-size:13px">
+        <div>🔋 储能 <strong style="color:#22c55e">¥400</strong> <span style="font-size:10px;color:var(--sub)">20%</span></div>
+        <div>🤖 机器人 <strong style="color:#22c55e">¥300</strong> <span style="font-size:10px;color:var(--sub)">15%</span></div>
+        <div>🥇 黄金 <strong style="color:#22c55e">¥250</strong> <span style="font-size:10px;color:var(--sub)">13%</span></div>
+        <div>🇺🇸 标普500 <strong>¥200</strong> <span style="font-size:10px;color:var(--sub)">10%</span></div>
+        <div>🗾 日本 <strong>¥200</strong> <span style="font-size:10px;color:var(--sub)">10%</span></div>
+        <div>🪨 稀土 <strong>¥200</strong> <span style="font-size:10px;color:var(--sub)">10%</span></div>
+        <div>🇪🇺 欧洲 <strong>¥200</strong> <span style="font-size:10px;color:var(--sub)">10%</span></div>
+        <div>🇻🇳 越南 <strong>¥100</strong> <span style="font-size:10px;color:var(--sub)">5%</span></div>
+        <div>🌍 全球 <strong style="color:#f59e0b">¥10</strong> <span style="font-size:10px;color:var(--sub)">1%</span></div>
+        <div>💡 机动 <strong style="color:#3b82f6">¥140</strong> <span style="font-size:10px;color:var(--sub)">7%</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📅 7月复盘节点</div>
+      <div class="timeline">
+        <div class="timeline-item"><div class="tl-date">7月14日</div><div class="tl-title">🇺🇸 美国CPI公布</div><div class="tl-desc">通胀回落→维持标普权重；通胀再升→暂停标普定投转黄金</div></div>
+        <div class="timeline-item"><div class="tl-date">7月28日</div><div class="tl-title">🇺🇸 FOMC议息会议</div><div class="tl-desc">加息→美股QDII全部暂停；不加息→恢复标普正常定投</div></div>
+        <div class="timeline-item"><div class="tl-date">7月中旬</div><div class="tl-title">📊 A股半年报预告</div><div class="tl-desc">储能/机器人/稀土业绩验证，超预期→下月加倍，低预期→暂停</div></div>
+        <div class="timeline-item"><div class="tl-date">每日</div><div class="tl-title">📱 打开工作台看估值</div><div class="tl-desc">切换「我的持仓」Tab → 看实时涨跌 → 跌多下月多投</div></div>
+      </div>
+    </div>
+  </div>
+
+  
+<!-- 定投计算器 -->
+  <div id="dca" class="panel">
+    <div class="card">
+      <div class="card-title">💰 定投收益计算器</div>
+      <div class="dca-calc">
+        <div>
+          <div class="input-group"><label>基金代码</label><input id="dcaCode" type="text" placeholder="如 000001" value="000001"></div>
+          <div class="input-group"><label>每月定投金额（元）</label><input id="dcaAmount" type="number" placeholder="如 1000" value="1000"></div>
+          <div class="input-group"><label>定投时长（年）</label><select id="dcaYears">
+            <option value="1">1年</option><option value="2">2年</option><option value="3" selected>3年</option><option value="5">5年</option><option value="10">10年</option>
+          </select></div>
+          <button class="btn btn-primary" onclick="calculateDCA()" style="width:100%;margin-top:8px">📊 计算收益</button>
+        </div>
+        <div id="dcaResult" class="result">
+          <div style="color:var(--sub);font-size:13px">输入参数后点击计算</div>
+          <div style="margin-top:8px;font-size:13px;color:var(--sub)">基于历史净值数据模拟定投收益</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 政策风向 -->
+  <div id="policy" class="panel">
+    <div class="policy-header">
+      <h2>🏛️ 十五五规划（2026-2030）· 投资风向标</h2>
+      <div class="subtitle">核心逻辑：A股是政策市 — 跟着国家战略走，买政策买方向 | 新质生产力 · 科技自立自强 · 产业体系现代化</div>
+    </div>
+
+    <div class="policy-threads">
+      <div class="thread-card">
+        <div class="th">🔴 主线一：新质生产力 · 先进制造升级</div>
+        <div class="tb">
+          <div style="font-weight:600;margin-bottom:6px">政策重点：</div>
+          半导体/芯片全链条突破、智能网联新能源汽车、机器人（首次列入战略性新兴产业）、高端装备、航空航天、新材料国产替代<br>
+          <div style="font-weight:600;margin:8px 0 6px">关键信号：</div>
+          ① 研发经费年均增长7%+ ② 集成电路"揭榜挂帅"攻关 ③ 耐心资本"投早投小投硬科技" ④ 未来产业先导区（21省布局）
+          <div style="font-weight:600;margin:8px 0 6px">受益板块：</div>
+          <span class="sector-tag" onclick="searchPolicySector('半导体')">半导体</span>
+          <span class="sector-tag" onclick="searchPolicySector('芯片')">芯片</span>
+          <span class="sector-tag" onclick="searchPolicySector('新能源')">新能源</span>
+          <span class="sector-tag" onclick="searchPolicySector('机器人')">机器人</span>
+          <span class="sector-tag" onclick="searchPolicySector('军工')">军工</span>
+          <span class="sector-tag" onclick="searchPolicySector('高端装备')">高端装备</span>
+          <span class="sector-tag" onclick="searchPolicySector('新材料')">新材料</span>
+          <span class="sector-tag" onclick="searchPolicySector('航空航天')">航空航天</span>
+        </div>
+      </div>
+
+      <div class="thread-card t2">
+        <div class="th">🔵 主线二：数字智能革命 · AI + 算力 + 数据</div>
+        <div class="tb">
+          <div style="font-weight:600;margin-bottom:6px">政策重点：</div>
+          "人工智能+"首次写入规划、算力基础设施（算电协同）、数据要素价值释放（2026 "数据要素价值释放年"）、6G前瞻布局、脑机接口、具身智能<br>
+          <div style="font-weight:600;margin:8px 0 6px">关键信号：</div>
+          ① 数字经济核心产业占GDP达12.5% ② 2027智能终端普及率超70% ③ 全国一体化算力网 ④ 数据产权制度建立
+          <div style="font-weight:600;margin:8px 0 6px">受益板块：</div>
+          <span class="sector-tag" onclick="searchPolicySector('人工智能')">人工智能</span>
+          <span class="sector-tag" onclick="searchPolicySector('算力')">算力</span>
+          <span class="sector-tag" onclick="searchPolicySector('数据要素')">数据要素</span>
+          <span class="sector-tag" onclick="searchPolicySector('通信')">通信</span>
+          <span class="sector-tag" onclick="searchPolicySector('云计算')">云计算</span>
+          <span class="sector-tag" onclick="searchPolicySector('大数据')">大数据</span>
+          <span class="sector-tag" onclick="searchPolicySector('软件')">软件</span>
+          <span class="sector-tag" onclick="searchPolicySector('物联网')">物联网</span>
+        </div>
+      </div>
+
+      <div class="thread-card t3">
+        <div class="th">🟢 主线三："反内卷" · 产业格局重塑</div>
+        <div class="tb">
+          <div style="font-weight:600;margin-bottom:6px">政策重点：</div>
+          供给侧管理减少过度竞争 → 并购重组提升集中度 → 龙头主导格局。新能源、汽车、光伏等产能过剩行业加速出清<br>
+          <div style="font-weight:600;margin:8px 0 6px">关键信号：</div>
+          ① 反内卷分三阶段推进（2026-2027并购潮） ② 龙头集中度提升 ③ 行业规范化加速 ④ 央企国企改革深化
+          <div style="font-weight:600;margin:8px 0 6px">受益方向：</div>
+          <span class="sector-tag" onclick="searchPolicySector('新能源')">新能源龙头</span>
+          <span class="sector-tag" onclick="searchPolicySector('光伏')">光伏</span>
+          <span class="sector-tag" onclick="searchPolicySector('汽车')">汽车</span>
+          <span class="sector-tag" onclick="searchPolicySector('央企改革')">央企改革</span>
+          <span class="sector-tag" onclick="searchPolicySector('红利')">红利低波</span>
+          <span class="sector-tag" onclick="searchPolicySector('有色')">有色金属</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 中美竞争风险警示 -->
+    <div class="card" style="border-left:4px solid #dc2626;background:#fef2f2">
+      <div class="card-title" style="color:#dc2626">🚫 硬规则：美国巨头绝对垄断的赛道 → A股不推荐</div>
+      <div style="font-size:13px;line-height:1.8;color:var(--text)">
+        <strong>核心逻辑：如果一家美国公司已经在某个领域建立了不可逾越的技术/成本/生态优势，A股做同样业务的公司就没有投资价值。</strong>不是配置多少的问题，是<span style="color:#dc2626">根本不该买</span>。<br><br>
+        <table style="width:100%;font-size:12px;border-collapse:collapse">
+          <tr style="background:#fee2e2">
+            <td style="padding:8px;font-weight:700;width:20%">❌ 不推荐</td>
+            <td style="padding:8px"><strong>美国巨头绝对垄断，A股同类公司无竞争力。</strong>这不是"暂时落后"的问题，是技术代差+成本碾压+生态锁定。政策再吹也没用，A股相关公司长期亏损、缺乏核心技术、依赖补贴。<strong>不推荐买入。</strong></td>
+          </tr>
+          <tr style="background:#fef9c3">
+            <td style="padding:8px;font-weight:700">⚠️ 谨慎</td>
+            <td style="padding:8px"><strong>美国领先但中国有局部优势或差异化空间。</strong>避开与巨头直接竞争的环节，选边缘/替代/国产刚需方向。仓位≤10%。</td>
+          </tr>
+          <tr style="background:#f0fdf4">
+            <td style="padding:8px;font-weight:700">✅ 推荐</td>
+            <td style="padding:8px"><strong>中国领先、并跑、或独有赛道。</strong>有全球竞争力，业绩真实，不依赖补贴。核心仓位，可重配。</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- 中美竞争格局总览 -->
+    <div class="card" style="margin-top:16px">
+      <div class="card-title">🌐 中美垄断巨头对照表 — 决定A股买什么、不买什么</div>
+      <div style="overflow-x:auto">
+        <table class="sector-fund-table">
+          <thead><tr><th>美国巨头</th><th>垄断领域</th><th>A股不推荐（同类业务）</th><th>原因</th><th style="color:#22c55e">✅ 可以买（替代方向）</th><th>支付宝基金</th></tr></thead>
+          <tbody>
+            <tr style="background:#fee2e2">
+              <td style="font-weight:700;font-size:14px">🚀 SpaceX</td>
+              <td>商业航天发射<br><span style="font-size:11px;color:#dc2626">猎鹰9号成本$2,720/kg<br>中国~$10,000/kg<br>Starship即将服役<br>Starlink 7000+卫星</span></td>
+              <td style="color:#dc2626;font-weight:700">❌ A股商业航天<br><span style="font-size:11px">航天宏图、中国卫星、<br>航天电子、四维图新</span></td>
+              <td style="font-size:11px">发射成本是SpaceX的4倍；<br>可回收火箭技术差距10年+；<br>多数公司亏损、靠补贴；<br>卫星互联网无商业化能力</td>
+              <td style="color:#22c55e;font-size:12px"><strong>军工ETF（导弹/军机/雷达）</strong><br>→ SpaceX不做军工<br>→ 中国军工有独立需求<br>→ 不依赖商业航天订单</td>
+              <td><span class="fund-link" onclick="goFund('001838')">国防军工混合 001838</span><span style="font-size:11px;color:#22c55e">✅</span></td>
+            </tr>
+            <tr style="background:#fee2e2">
+              <td style="font-weight:700;font-size:14px">💻 NVIDIA</td>
+              <td>AI训练GPU<br><span style="font-size:11px;color:#dc2626">H200/B200占95%+训练市场<br>CUDA生态锁定<br>AMD也追不上</span></td>
+              <td style="color:#dc2626;font-weight:700">❌ A股GPU/AI芯片<br><span style="font-size:11px">寒武纪、海光信息、<br>景嘉微、芯原股份</span></td>
+              <td style="font-size:11px">性能差距5-8年；<br>CUDA生态无法替代；<br>美国封锁反而限制了出货；<br>寒武纪营收低、长期亏损</td>
+              <td style="color:#22c55e;font-size:12px"><strong>算力基建（数据中心/服务器）</strong><br>→ 不造GPU，但建数据中心<br>→ AI应用需要大量算力<br>→ 国产服务器/光模块受益</td>
+              <td><span class="fund-link" onclick="goFund('519606')">万家人工智能 519606</span><span style="font-size:11px;color:#22c55e">✅</span></td>
+            </tr>
+            <tr style="background:#fee2e2">
+              <td style="font-weight:700;font-size:14px">🏭 TSMC</td>
+              <td>先进芯片制造<br><span style="font-size:11px;color:#dc2626">垄断3nm以下制程<br>苹果/NVIDIA/AMD全依赖<br>美国+盟友技术封锁</span></td>
+              <td style="color:#dc2626;font-weight:700">❌ A股先进制程代工<br><span style="font-size:11px">中芯国际（先进制程）、<br>华虹半导体</span></td>
+              <td style="font-size:11px">无EUV光刻机（ASML禁售）；<br>先进制程差距5-8年；<br>良率/产能远不及台积电；<br>制裁持续加码</td>
+              <td style="color:#22c55e;font-size:12px"><strong>成熟制程/封装测试</strong><br>→ 28nm+成熟制程不受限<br>→ 封装/测试是中国优势<br>→ 芯片设计服务工具</td>
+              <td><span class="fund-link" onclick="goFund('320007')">诺安成长 320007</span><span style="font-size:11px;color:#22c55e">✅</span><br><span style="font-size:10px;color:var(--sub)">（含封测/设备）</span></td>
+            </tr>
+            <tr style="background:#fee2e2">
+              <td style="font-weight:700;font-size:14px">🔬 ASML</td>
+              <td>EUV光刻机<br><span style="font-size:11px;color:#dc2626">100%垄断EUV<br>单台售价$200M+<br>禁售中国</span></td>
+              <td style="color:#dc2626;font-weight:700">❌ A股光刻机概念<br><span style="font-size:11px">上海微电子（未上市）<br>张江高科（间接）</span></td>
+              <td style="font-size:11px">EUV涉及10万+零部件；<br>全球供应链，一国无法复制；<br>中国只能做DUV级别；<br>A股无纯正光刻机标的</td>
+              <td style="color:#22c55e;font-size:12px"><strong>半导体材料/零部件</strong><br>→ 不造整机，做耗材<br>→ 光刻胶/硅片/气体<br>→ 所有芯片厂都需要</td>
+              <td>—（等材料ETF）</td>
+            </tr>
+            <tr style="background:#fee2e2">
+              <td style="font-weight:700;font-size:14px">🧠 OpenAI<br>Google</td>
+              <td>AI基础大模型<br><span style="font-size:11px;color:#dc2626">GPT-5/Claude 4/Gemini 3<br>英文推理+多模态绝对领先<br>用户基数+数据飞轮</span></td>
+              <td style="color:#dc2626;font-weight:700">❌ A股大模型概念<br><span style="font-size:11px">三六零、科大讯飞、<br>云从科技、商汤</span></td>
+              <td style="font-size:11px">中文场景有优势但商业变现弱；<br>多数A股公司只是接入API；<br>自研大模型投入大、产出少；<br>百度/阿里/字节才是真有模型</td>
+              <td style="color:#22c55e;font-size:12px"><strong>AI应用/算力基建</strong><br>→ 不造模型，用模型<br>→ AI+医疗/教育/办公<br>→ 算力服务器/光模块/液冷</td>
+              <td><span class="fund-link" onclick="goFund('519606')">万家人工智能 519606</span><span style="font-size:11px;color:#22c55e">✅</span></td>
+            </tr>
+            <tr style="background:#fee2e2">
+              <td style="font-weight:700;font-size:14px">🔮 Google<br>IBM</td>
+              <td>量子计算<br><span style="font-size:11px;color:#dc2626">Google Willow芯片<br>IBM 1000+量子比特<br>纠错突破</span></td>
+              <td style="color:#dc2626;font-weight:700">❌ A股量子概念<br><span style="font-size:11px">国盾量子、科大国创、<br>神州信息</span></td>
+              <td style="font-size:11px">5年内无商业化可能；<br>A股公司量子业务占比极低；<br>纯概念炒作，无业绩支撑</td>
+              <td style="color:#22c55e;font-size:12px"><strong>不买，等10年</strong><br>量子计算还处于实验室阶段<br>没有任何公司能靠量子赚钱<br>现在买=赌博</td>
+              <td>—（不推荐）</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 推荐赛道 -->
+    <div class="card" style="border-left:4px solid #22c55e;background:#f0fdf4">
+      <div class="card-title" style="color:#166534">✅ 中国领先 · 放心买的赛道</div>
+      <div style="overflow-x:auto">
+        <table class="sector-fund-table">
+          <thead><tr><th>行业赛道</th><th>中国代表</th><th>全球地位</th><th>为什么安全</th><th>支付宝可购基金</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>🚗 新能源汽车</td><td>比亚迪（全球销冠）</td><td style="color:#166534;font-weight:700">🇨🇳 全球第一</td><td>比亚迪销量超特斯拉；产业链完整；不再依赖补贴</td>
+              <td><span class="fund-link" onclick="goFund('012127')">新能源车混合 012127</span> <span style="font-size:11px;color:#22c55e">✅支付宝</span></td>
+            </tr>
+            <tr>
+              <td>☀️ 光伏</td><td>隆基 / 通威 / 晶科</td><td style="color:#166534;font-weight:700">🇨🇳 全球绝对领先</td><td>全球市占率80%+；技术+成本双重碾压；美国加关税也挡不住</td>
+              <td><span class="fund-link" onclick="goFund('012127')">新能源混合 012127</span> <span style="font-size:11px;color:#22c55e">✅支付宝</span></td>
+            </tr>
+            <tr>
+              <td>🔋 动力电池</td><td>宁德时代（全球37%）</td><td style="color:#166534;font-weight:700">🇨🇳 全球第一</td><td>宁德时代+比亚迪占全球50%+；日韩电池厂被甩开</td>
+              <td><span class="fund-link" onclick="goFund('012127')">新能源混合 012127</span> <span style="font-size:11px;color:#22c55e">✅支付宝</span></td>
+            </tr>
+            <tr>
+              <td>📡 5G/通信设备</td><td>华为 / 中兴</td><td style="color:#166534;font-weight:700">🇨🇳 全球领先</td><td>华为5G专利数全球第一；美国制裁5年仍活下来</td>
+              <td><span class="fund-link" onclick="goFund('001838')">国防军工混合 001838</span> <span style="font-size:11px;color:#22c55e">✅支付宝</span></td>
+            </tr>
+            <tr>
+              <td>🏗️ 高铁/基建</td><td>中国中车 / 中国中铁</td><td style="color:#166534;font-weight:700">🇨🇳 全球绝对领先</td><td>中国高铁4.5万公里（全球70%）；技术+成本无人能及</td>
+              <td><span class="fund-link" onclick="goFund('007603')">红利低波混合 007603</span> <span style="font-size:11px;color:#22c55e">✅支付宝</span></td>
+            </tr>
+            <tr>
+              <td>💼 央企红利</td><td>中农工建 / 中石油 / 中石化</td><td style="color:#166534;font-weight:700">🇨🇳 中国特色</td><td>高股息（4-6%）+ 低波动 + 国企改革；美股没有对标</td>
+              <td><span class="fund-link" onclick="goFund('007603')">红利低波混合 007603</span> <span style="font-size:11px;color:#22c55e">✅支付宝</span></td>
+            </tr>
+            <tr>
+              <td>💊 医疗健康</td><td>恒瑞 / 百济神州</td><td style="color:#f59e0b;font-weight:700">各有优势</td><td>仿制药性价比碾压；创新药研发差距大但成本优势明显</td>
+              <td><span class="fund-link" onclick="goFund('003095')">中欧医疗健康 003095</span> <span style="font-size:11px;color:#22c55e">✅支付宝</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 支付宝可购基金汇总 -->
+    <div class="card" style="border-left:4px solid #1677ff;background:#f0f7ff">
+      <div class="card-title" style="color:#1677ff">📱 一键同步到支付宝</div>
+      <div style="font-size:13px;line-height:1.8;color:var(--text)">
+        <strong>点击代码可复制，点击"支付宝查看"可打开蚂蚁财富网页。</strong>在支付宝App搜索栏粘贴代码即可直达基金：<br><br>
+        <div class="sync-card">
+          <div class="sync-fund-row" style="font-weight:600;font-size:11px;color:var(--sub)">
+            <span style="width:180px">方向</span><span>基金代码</span><span style="width:100px">操作</span>
+          </div>
+          <div class="sync-fund-row">
+            <span style="width:180px;font-size:13px">🔴 半导体</span>
+            <span><span class="copy-btn" onclick="copyFund('320007',this)" title="点击复制代码">📋 320007</span> <span style="font-size:11px;color:var(--sub)">诺安成长混合</span></span>
+            <span style="width:100px"><a class="alipay-link" href="https://www.fund123.cn/matfund/320007.html" target="_blank">📱 支付宝查看</a></span>
+          </div>
+          <div class="sync-fund-row">
+            <span style="width:180px;font-size:13px">🧠 人工智能</span>
+            <span><span class="copy-btn" onclick="copyFund('519606',this)" title="点击复制代码">📋 519606</span> <span style="font-size:11px;color:var(--sub)">万家人工智能混合</span></span>
+            <span style="width:100px"><a class="alipay-link" href="https://www.fund123.cn/matfund/519606.html" target="_blank">📱 支付宝查看</a></span>
+          </div>
+          <div class="sync-fund-row">
+            <span style="width:180px;font-size:13px">🚗 新能源</span>
+            <span><span class="copy-btn" onclick="copyFund('012127',this)" title="点击复制代码">📋 012127</span> <span style="font-size:11px;color:var(--sub)">新能源混合</span></span>
+            <span style="width:100px"><a class="alipay-link" href="https://www.fund123.cn/matfund/012127.html" target="_blank">📱 支付宝查看</a></span>
+          </div>
+          <div class="sync-fund-row">
+            <span style="width:180px;font-size:13px">💊 医疗健康</span>
+            <span><span class="copy-btn" onclick="copyFund('003095',this)" title="点击复制代码">📋 003095</span> <span style="font-size:11px;color:var(--sub)">中欧医疗健康混合</span></span>
+            <span style="width:100px"><a class="alipay-link" href="https://www.fund123.cn/matfund/003095.html" target="_blank">📱 支付宝查看</a></span>
+          </div>
+          <div class="sync-fund-row">
+            <span style="width:180px;font-size:13px">🛡️ 军工</span>
+            <span><span class="copy-btn" onclick="copyFund('001838',this)" title="点击复制代码">📋 001838</span> <span style="font-size:11px;color:var(--sub)">国防军工混合</span></span>
+            <span style="width:100px"><a class="alipay-link" href="https://www.fund123.cn/matfund/001838.html" target="_blank">📱 支付宝查看</a></span>
+          </div>
+          <div class="sync-fund-row">
+            <span style="width:180px;font-size:13px">💼 红利低波</span>
+            <span><span class="copy-btn" onclick="copyFund('007603',this)" title="点击复制代码">📋 007603</span> <span style="font-size:11px;color:var(--sub)">红利低波混合</span></span>
+            <span style="width:100px"><a class="alipay-link" href="https://www.fund123.cn/matfund/007603.html" target="_blank">📱 支付宝查看</a></span>
+          </div>
+        </div>
+        <br>
+        <span style="font-size:12px;color:var(--sub)">💡 使用方法：① 点击代码复制 → ② 打开支付宝App → ③ 顶部搜索栏粘贴 → ④ 直达基金详情页，直接申购</span>
+      </div>
+    </div>
+
+    <!-- 近期政策热点 -->
+    <div class="card" style="border-left:4px solid #8b5cf6;background:#faf5ff">
+      <div class="card-title" style="color:#7c3aed;justify-content:space-between">
+        <span>📡 近期政策热点 · 陆家嘴论坛 2026.6.17-18</span>
+        <span style="font-size:11px;color:var(--sub)">最后更新: <span id="policyUpdateTime">2026-06-22</span> | <span style="cursor:pointer;color:var(--primary)" onclick="checkPolicyFreshness()">🔄 检查更新</span></span>
+      </div>
+      <div style="font-size:13px;line-height:1.8">
+        <table style="width:100%;font-size:12px;border-collapse:collapse">
+          <tr style="background:#f3e8ff">
+            <td style="padding:8px;font-weight:700;width:16%">🤖 AI产业重大突破</td>
+            <td style="padding:8px"><strong>科创板向AI大模型敞开大门</strong> — 证监会扩大第五套标准至AI领域，智谱华章科创板IPO辅导验收。同时支持量子科技、生物制造、具身智能等硬科技企业上市。<br><span style="color:#7c3aed">→ 利好：AI应用、算力基建、科创板50</span></td>
+          </tr>
+          <tr style="background:#faf5ff">
+            <td style="padding:8px;font-weight:700">💰 耐心资本入市</td>
+            <td style="padding:8px"><strong>社保+保险两年净买入A股1.3万亿</strong> — 养老金、保险资金持续加码，"长钱长投"机制落地。央行推动中长期资金加大对股市投资力度。<br><span style="color:#7c3aed">→ 利好：蓝筹、红利低波、央企</span></td>
+          </tr>
+          <tr style="background:#f3e8ff">
+            <td style="padding:8px;font-weight:700">📊 金融结构拐点</td>
+            <td style="padding:8px"><strong>债券+股票融资占比47%首次超贷款(45%)</strong> — 直接融资成为主渠道，资本市场战略地位升级。科技板块市值占比超三成，千亿市值科技企业占比45%。<br><span style="color:#7c3aed">→ 利好：券商、科技龙头</span></td>
+          </tr>
+          <tr style="background:#faf5ff">
+            <td style="padding:8px;font-weight:700">🏦 利率走廊收窄</td>
+            <td style="padding:8px"><strong>央行将利率走廊从70BP收窄至50BP</strong> — 提升短端利率传导效率，货币政策更精准。人民币国际化提速：离岸外汇交易试点落地、境外央行回购工具创设。<br><span style="color:#7c3aed">→ 利好：银行、离岸金融</span></td>
+          </tr>
+          <tr style="background:#f3e8ff">
+            <td style="padding:8px;font-weight:700">🔄 并购重组加速</td>
+            <td style="padding:8px"><strong>证监会力推并购重组</strong> — 快速审核通道+储架发行机制，支持上市公司产业整合。"反内卷"从供给侧管理进入并购重组阶段。<br><span style="color:#7c3aed">→ 利好：行业龙头、央企重组</span></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- 山顶预警规则 -->
+    <div class="card" style="border-left:4px solid #f59e0b;background:#fffbf0">
+      <div class="card-title" style="color:#b45309">⛰️ 山顶预警 · 选基过滤器</div>
+      <div style="font-size:13px;line-height:1.8">
+        <strong>核心规则：不推荐近3年涨幅过大、处于历史高位的基金。</strong>再好的基金买在山顶也是亏。<br><br>
+        <table style="width:100%;font-size:12px;border-collapse:collapse">
+          <tr style="background:#fef3c7">
+            <td style="padding:6px 8px;font-weight:700">🟢 安全区间</td>
+            <td style="padding:6px 8px">当前净值低于3年最高点 <strong>15%以上</strong>（即从高点回撤超15%）→ 有安全边际，可以关注</td>
+          </tr>
+          <tr style="background:#fff7ed">
+            <td style="padding:6px 8px;font-weight:700">🟡 谨慎区间</td>
+            <td style="padding:6px 8px">净值在3年高点 <strong>5%-15%</strong> 以内 → 接近山顶，控制仓位，等回调</td>
+          </tr>
+          <tr style="background:#fee2e2">
+            <td style="padding:6px 8px;font-weight:700">🔴 山顶区域</td>
+            <td style="padding:6px 8px">净值在3年高点 <strong>5%以内或创新高</strong> → ⚠️ 山顶风险，除非有近期政策/论坛强催化（如陆家嘴论坛AI政策），否则不推荐</td>
+          </tr>
+        </table>
+        <br>
+        <span style="font-size:12px;color:var(--sub)">💡 例外：如果近期有重大政策利好（如陆家嘴论坛级别），即使在高位也可重新评估，但需设好止损。</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📅 政策周期时间线</div>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="tl-date">2026年3月</div>
+          <div class="tl-title">十五五规划纲要正式发布</div>
+          <div class="tl-desc">全国人大审议通过，明确6方面109项重大工程，"建设现代化产业体系"列为首要任务，新质生产力定为核心主线</div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-date">2026年4月</div>
+          <div class="tl-title">专项规划密集出台</div>
+          <div class="tl-desc">新型工业化、数字中国、未来产业等国家级专项规划上半年陆续发布，政策催化密集期</div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-date">2026年</div>
+          <div class="tl-title">"反内卷"第一阶段</div>
+          <div class="tl-desc">供给侧管理、行业规范出台，新能源/光伏/汽车等产能过剩行业加速出清</div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-date">2026年</div>
+          <div class="tl-title">数据要素价值释放年</div>
+          <div class="tl-desc">数据产权制度建立、数据交易流通加速，数据资产入表推广</div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-date">2026-2027年</div>
+          <div class="tl-title">并购重组浪潮</div>
+          <div class="tl-desc">"反内卷"第二阶段 — 行业并购重组提升集中度，龙头公司市场份额大幅提升</div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-date">2027年</div>
+          <div class="tl-title">中期评估与调整</div>
+          <div class="tl-desc">十五五规划中期评估，政策微调和加码，AI智能终端普及率目标超70%</div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-date">2028-2029年</div>
+          <div class="tl-title">产业成果加速落地</div>
+          <div class="tl-desc">AI+产业深度融合、6G试验网部署、商业航天规模化、具身智能产品落地</div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-date">2030年</div>
+          <div class="tl-title">十五五收官 · 目标兑现</div>
+          <div class="tl-desc">数字经济核心产业占GDP达12.5%、研发投入强度大幅提升、科技自立自强取得决定性突破</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📜 历史政策周期与A股表现</div>
+      <div style="overflow-x:auto">
+        <table class="sector-fund-table">
+          <thead><tr><th>规划周期</th><th>核心政策主线</th><th>领涨板块</th><th>代表性行情</th></tr></thead>
+          <tbody>
+            <tr><td>十二五<br>(2011-2015)</td><td>七大战略性新兴产业、城镇化</td><td>互联网+、基建、高铁、房地产</td><td>2014-2015大牛市（创业板暴涨5倍）</td></tr>
+            <tr><td>十三五<br>(2016-2020)</td><td>供给侧改革、中国制造2025</td><td>消费升级（白酒家电）、新能源（光伏/锂电）、5G</td><td>核心资产牛市（茅台涨10倍）、新能源元年</td></tr>
+            <tr><td>十四五<br>(2021-2025)</td><td>双碳目标、数字经济、科技自立</td><td>新能源（风光储车）、半导体国产替代、AI大模型</td><td>新能源超级周期（宁德时代万亿市值）、AI算力爆发</td></tr>
+            <tr><td style="background:#fef2f2;font-weight:700">十五五<br>(2026-2030)</td><td style="background:#fef2f2">新质生产力、AI+行动、反内卷</td><td style="background:#fef2f2">人工智能、机器人、低空经济、半导体、商业航天、数据要素</td><td style="background:#fef2f2">🔴 进行中 — 政策密集催化期</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 全球价值投资 -->
+  <div id="global" class="panel">
+    <div class="policy-header" style="background:linear-gradient(135deg,#1e3a5f,#2563eb)">
+      <h2>🌍 全球价值投资 · 巴菲特 & 芒格分析框架</h2>
+      <div class="subtitle">美股 + 日经 | 数据来源：Yahoo Finance | 基于 GitHub 开源项目整合（AI Hedge Fund 51k⭐ / Fincept 15k⭐）</div>
+    </div>
+
+    <!-- 搜索 -->
+    <div class="card">
+      <div class="market-search-box">
+        <select id="marketRegion" style="padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:#fff">
+          <option value="us">🇺🇸 美股</option>
+          <option value="jp">🇯🇵 日股 (.T)</option>
+        </select>
+        <input id="globalSearch" type="text" placeholder="输入股票代码（美股：AAPL MSFT GOOGL | 日股：7203.T 6758.T）" onkeydown="if(event.key==='Enter')searchGlobalStock()">
+        <button class="btn btn-primary" onclick="searchGlobalStock()">🔍 分析</button>
+      </div>
+      <div class="market-badges" id="marketBadges">
+        <span class="market-badge active" onclick="quickGlobalSearch('AAPL')">AAPL 苹果</span>
+        <span class="market-badge" onclick="quickGlobalSearch('MSFT')">MSFT 微软</span>
+        <span class="market-badge" onclick="quickGlobalSearch('GOOGL')">GOOGL 谷歌</span>
+        <span class="market-badge" onclick="quickGlobalSearch('NVDA')">NVDA 英伟达</span>
+        <span class="market-badge" onclick="quickGlobalSearch('BRK-B')">BRK.B 伯克希尔</span>
+        <span class="market-badge" onclick="quickGlobalSearch('JPM')">JPM 摩根大通</span>
+        <span class="market-badge" onclick="quickGlobalSearch('7203.T')">7203 丰田</span>
+        <span class="market-badge" onclick="quickGlobalSearch('6758.T')">6758 索尼</span>
+        <span class="market-badge" onclick="quickGlobalSearch('9984.T')">9984 软银</span>
+        <span class="market-badge" onclick="quickGlobalSearch('8306.T')">8306 三菱UFJ</span>
+      </div>
+    </div>
+
+    <div id="globalEmpty" class="empty"><div class="icon">🌍</div><p>输入美股或日股代码开始价值投资分析</p><p style="font-size:12px;margin-top:4px">日股代码后缀 .T（如 7203.T = 丰田）</p></div>
+    <div id="globalContent" style="display:none">
+
+      <!-- 公司概览 -->
+      <div class="card">
+        <div class="card-title" id="globalTitle"></div>
+        <div class="metrics" id="globalMetrics"></div>
+      </div>
+
+      <!-- 价值分析双栏 -->
+      <div class="value-grid">
+        <!-- 巴菲特量化评分 -->
+        <div class="card">
+          <div class="card-title">💼 巴菲特量化评分</div>
+          <div id="buffettScore"></div>
+          <div id="buffettChecklist"></div>
+        </div>
+        <!-- 芒格质量评估 -->
+        <div class="card">
+          <div class="card-title">🧠 芒格质量评估</div>
+          <div id="mungerChecklist"></div>
+        </div>
+      </div>
+
+      <!-- DCF估值 -->
+      <div class="card">
+        <div class="card-title">💰 DCF 内在价值估算</div>
+        <div class="value-grid">
+          <div>
+            <div class="dcf-inputs">
+              <div class="field"><label>每股自由现金流 ($)</label><input id="dcfFCF" type="number" step="0.01" placeholder="自动填入"></div>
+              <div class="field"><label>增长率 (前5年, %)</label><input id="dcfGrowth" type="number" step="0.1" value="10"></div>
+              <div class="field"><label>永续增长率 (%)</label><input id="dcfTerminal" type="number" step="0.1" value="3"></div>
+              <div class="field"><label>折现率 (%)</label><input id="dcfDiscount" type="number" step="0.1" value="10"></div>
+              <div class="field"><label>当前股价 ($)</label><input id="dcfPrice" type="number" step="0.01" placeholder="自动填入"></div>
+            </div>
+            <button class="btn btn-primary" onclick="runDCF()" style="width:100%">📊 计算内在价值</button>
+          </div>
+          <div id="dcfResult" style="background:#f8fafc;border-radius:8px;padding:16px">
+            <div style="color:var(--sub);font-size:13px">调整参数后点击计算</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 历史走势 -->
+      <div class="card">
+        <div class="card-title">📈 历史走势（2年）</div>
+        <div class="chart-container"><canvas id="globalChart"></canvas></div>
+      </div>
+
+      <!-- 巴菲特 & 芒格 投资原则 -->
+      <div class="card">
+        <div class="card-title">📖 巴菲特 & 芒格 核心投资原则</div>
+        <div class="principles-grid">
+          <div class="principle-card">
+            <div class="pq">🏰 护城河原则</div>
+            <div class="pa">寻找具有持久竞争优势的企业。宽护城河 = 高定价权 + 客户粘性 + 难以复制。巴菲特："最好的生意是那种拥有强大护城河的城堡。"</div>
+          </div>
+          <div class="principle-card">
+            <div class="pq">🛡️ 安全边际</div>
+            <div class="pa">以显著低于内在价值的价格买入。内在价值打7折以下才考虑。格雷厄姆："安全边际是投资的核心概念。"</div>
+          </div>
+          <div class="principle-card">
+            <div class="pq">📊 能力圈</div>
+            <div class="pa">只投资你能理解的业务。"知道你不知道什么，比知道你知道什么更重要。" 坚守自己熟悉的行业。</div>
+          </div>
+          <div class="principle-card munger">
+            <div class="pq">🔍 多学科思维模型</div>
+            <div class="pa">芒格："拿锤子的人看什么都像钉子。" 用心理学、经济学、物理学、生物学等多学科框架交叉验证投资决策。</div>
+          </div>
+          <div class="principle-card munger">
+            <div class="pq">⚖️ 反过来想</div>
+            <div class="pa">芒格："反过来想，总是反过来想。" 不问"为什么这个投资会成功"，而是问"什么会让这个投资失败"。</div>
+          </div>
+          <div class="principle-card munger">
+            <div class="pq">💎 以合理价格买好公司</div>
+            <div class="pa">芒格改变了巴菲特的"捡烟蒂"策略。"以合理价格买入伟大公司，远好于以低价买入平庸公司。"</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toastContainer"></div>
+
+<script>
+
+
+// ====== 全球热点新闻引擎 ======
+var NEWS_CACHE_KEY = 'fund-news-cache';
+var NEWS_TTL = 6 * 60 * 60 * 1000;
+var allNewsItems = [];
+
+var NEWS_SOURCES = [
+  { id:'nyt', name:'纽约时报', cls:'nyt', url:'https://rss.nytimes.com/services/xml/rss/nyt/World.xml', lang:'en' },
+  { id:'dw', name:'德国之声', cls:'dw', url:'https://rss.dw.com/rss/rss-chi-all', lang:'zh' },
+  { id:'cna', name:'中央社', cls:'cna', url:'https://www.cna.com.tw/rssfeed/news/world.xml', lang:'zh' },
+  { id:'zaobao', name:'联合早报', cls:'zaobao', url:'https://plink.anyfeeder.com/zaobao/realtime/world', lang:'zh' },
+  { id:'kyodo', name:'共同网', cls:'kyodo', url:'https://english.kyodonews.net/rss/all.xml', lang:'en' }
+];
+
+function getNewsCache() {
+  try {
+    var raw = localStorage.getItem(NEWS_CACHE_KEY);
+    if (!raw) return null;
+    var cache = JSON.parse(raw);
+    if (Date.now() - cache.ts > NEWS_TTL) return null;
+    return cache;
+  } catch(e) { return null; }
+}
+
+function saveNewsCache(items) {
+  localStorage.setItem(NEWS_CACHE_KEY, JSON.stringify({ ts: Date.now(), items: items }));
+}
+
+function classifyNews(title) {
+  var t = title.toLowerCase();
+  var tags = [];
+  if (/market|stock|share|index|dow|nasdaq|sp500|fed|rate|inflation|gdp|economic|股市|经济|通膨|升息|降息|央行|股票|指数|牛市|熊市|殖利率/.test(t)) tags.push('market');
+  if (/policy|ban|sanction|tariff|trade|deal|regulation|law|vote|congress|senate|政策|制裁|关税|法规|立法|协议|选举|谈判/.test(t)) tags.push('policy');
+  if (/ai|chip|tech|startup|quantum|blockchain|apple|google|meta|tesla|semiconductor|科技|芯片|人工智慧|半导体|量子|数位/.test(t)) tags.push('tech');
+  if (/war|conflict|nuclear|missile|military|troop|border|diplomat|战争|冲突|核武|军事|飞弹|外交|演习|争议/.test(t)) tags.push('geopolitics');
+  if (/oil|energy|gas|solar|wind|nuclear|coal|battery|石油|能源|太阳能|风力|天然气|电池|碳中和/.test(t)) tags.push('energy');
+  return tags;
+}
+
+function fetchNewsSource(source) {
+  var apiUrl = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(source.url);
+  return fetch(apiUrl)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.status !== 'ok' || !data.items) return [];
+      return data.items.map(function(item) {
+        var tags = classifyNews(item.title);
+        return {
+          title: item.title,
+          link: item.link,
+          pubDate: item.pubDate,
+          source: source.name,
+          sourceId: source.id,
+          sourceCls: source.cls,
+          tags: tags,
+          snippet: (item.description || '').replace(/<[^>]*>/g, '').substring(0, 120)
+        };
+      });
+    })
+    .catch(function() { return []; });
+}
+
+function loadAllNews() {
+  var cache = getNewsCache();
+  if (cache && cache.items && cache.items.length > 0) {
+    allNewsItems = cache.items;
+    renderNewsList(allNewsItems);
+    document.getElementById('newsUpdateTime').textContent = '🟢 已缓存 · ' + new Date(cache.ts).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
+    return;
+  }
+
+  document.getElementById('newsUpdateTime').textContent = '⏳ 加载中...';
+  var promises = NEWS_SOURCES.map(function(src) { return fetchNewsSource(src); });
+
+  Promise.all(promises).then(function(results) {
+    var all = [];
+    results.forEach(function(items) { all = all.concat(items); });
+    all.sort(function(a, b) { return new Date(b.pubDate) - new Date(a.pubDate); });
+    all = all.slice(0, 50);
+    allNewsItems = all;
+    saveNewsCache(all);
+    renderNewsList(all);
+    document.getElementById('newsUpdateTime').textContent = '🟢 已更新 · ' + new Date().toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
+  }).catch(function(e) {
+    document.getElementById('newsFeed').innerHTML = '<div class="empty">⚠️ 加载失败: ' + e.message + '<br><small>请检查网络后手动刷新</small></div>';
+    document.getElementById('newsUpdateTime').textContent = '🔴 加载失败';
+  });
+}
+
+function renderNewsList(items) {
+  var el = document.getElementById('newsFeed');
+  if (!items.length) {
+    el.innerHTML = '<div class="empty">暂无新闻</div>';
+    return;
+  }
+  var html = '';
+  items.forEach(function(item) {
+    var tagsHtml = (item.tags || []).slice(0,2).map(function(t) {
+      var label = {market:'市场',policy:'政策',tech:'科技',geopolitics:'地缘',energy:'能源'}[t] || t;
+      return '<span class="news-tag ' + t + '">' + label + '</span>';
+    }).join('');
+    var date = new Date(item.pubDate);
+    var dateStr = isNaN(date.getTime()) ? '' : date.toLocaleDateString('zh-CN', {month:'short',day:'numeric'}) + ' ' + date.toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
+    html += '<div class="news-item" onclick="window.open(\'' + item.link + '\',\'_blank\')" data-tags="' + (item.tags || []).join(',') + '">';
+    html += '<span class="news-source ' + item.sourceCls + '">' + item.source + '</span>';
+    html += '<span class="news-title">' + item.title + ' ' + tagsHtml + '</span>';
+    html += '<span class="news-date">' + dateStr + '</span>';
+    html += '</div>';
+  });
+  el.innerHTML = html;
+}
+
+function filterNews(filter, btn) {
+  var filters = document.querySelectorAll('.news-filter');
+  filters.forEach(function(f) { f.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  if (filter === 'all') {
+    renderNewsList(allNewsItems);
+  } else {
+    var filtered = allNewsItems.filter(function(item) {
+      return (item.tags || []).indexOf(filter) >= 0;
+    });
+    renderNewsList(filtered);
+  }
+}
+
+function refreshNews() {
+  localStorage.removeItem(NEWS_CACHE_KEY);
+  document.getElementById('newsFeed').innerHTML = '<div class="loading"><span class="spinner"></span> 刷新中...</div>';
+  document.getElementById('newsUpdateTime').textContent = '⏳ 刷新中...';
+  loadAllNews();
+}
+
+// Auto-load news when news tab opens
+var _origSwitchTabNews2 = switchTab;
+switchTab = function(panelName) {
+  _origSwitchTabNews2(panelName);
+  if (panelName === 'news' && allNewsItems.length === 0) {
+    setTimeout(loadAllNews, 500);
+  }
+};
+
+// ====== Claude 数据注入桥 ======
+// Claude 通过 Edit 工具往此数组写入基金数据，用户 F5 刷新后自动导入
+const PENDING_PORTFOLIO = [
+  {code:"019035", name:"易方达全球医药行业混合(QDII)C", amount:16.65},
+  {code:"014674", name:"富国中证港股通互联网ETF联接C", amount:7.95},
+  {code:"003985", name:"嘉实新能源新材料股票C", amount:42.34},
+  {code:"010796", name:"民生加银价值发现一年持有期混合C", amount:97.05},
+  {code:"020290", name:"国泰中证机器人ETF联接C", amount:59.50},
+  {code:"006479", name:"广发纳斯达克100ETF联接(QDII)C", amount:50.48},
+  {code:"160213", name:"国泰纳斯达克100指数(QDII)", amount:81.37},
+  {code:"008764", name:"天弘越南市场股票(QDII)C", amount:100.83},
+  {code:"016452", name:"南方纳斯达克100指数(QDII)A", amount:137.79},
+  {code:"539001", name:"建信纳斯达克100指数(QDII)A", amount:78.94},
+  {code:"007280", name:"摩根日本精选股票(QDII)A", amount:181.68},
+  {code:"026266", name:"广发储能电池ETF联接C", amount:62.78},
+  {code:"017193", name:"天弘中证工业有色金属主题ETF联接C", amount:525.21},
+  {code:"017641", name:"摩根标普500指数(QDII)A", amount:141.30},
+  {code:"019305", name:"摩根标普500指数(QDII)C", amount:136.89},
+  {code:"000614", name:"华安国际龙头(DAX)ETF联接(QDII)A", amount:40.18},
+  {code:"018147", name:"建信新兴市场优选混合(QDII)C", amount:375.70},
+  {code:"016453", name:"南方纳斯达克100指数(QDII)C", amount:162.90},
+  {code:"020713", name:"华安三菱日联日经225ETF联接(QDII)C", amount:10.00},
+  {code:"002611", name:"博时黄金ETF联接C", amount:705.31},
+  {code:"011036", name:"嘉实中证稀土产业ETF联接C", amount:281.90},
+  {code:"019449", name:"摩根日本精选股票(QDII)C", amount:338.14},
+  {code:"012922", name:"易方达全球成长精选混合(QDII)C", amount:3068.05},
+  {code:"009034", name:"建信上海金ETF联接C", amount:89.06}
+];
+// Claude 通过 Edit 工具注入政策热点更新（将 PENDING_POLICY_UPDATES 改为 true 触发刷新提示）
+var PENDING_POLICY_UPDATES = null;
+
+// ====== 数据源 ======
+// JSONP 加载器
+function jsonp(url, timeout) {
+  timeout = timeout || 8000;
+  return new Promise(function(resolve, reject) {
+    var callbackName = '_jsonp_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    var script = document.createElement('script');
+    var timer = setTimeout(function() {
+      cleanup();
+      reject(new Error('JSONP 超时'));
+    }, timeout);
+    function cleanup() {
+      clearTimeout(timer);
+      delete window[callbackName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+    window[callbackName] = function(data) {
+      cleanup();
+      resolve(data);
+    };
+    script.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + callbackName;
+    script.onerror = function() {
+      cleanup();
+      reject(new Error('JSONP 加载失败'));
+    };
+    document.head.appendChild(script);
+  });
+}
+
+// 天天基金实时估值 JSONP
+function fetchRealTime(fundCode) {
+  return jsonp('https://fundgz.1234567.com.cn/js/' + fundCode + '.js?' + Date.now(), 5000);
+}
+
+// 基金详细信息 (东方财富 pingzhongdata - 全局变量赋值方式)
+function fetchFundDetail(fundCode) {
+  return new Promise(function(resolve, reject) {
+    var script = document.createElement('script');
+    var timer = setTimeout(function() {
+      if (script.parentNode) script.parentNode.removeChild(script);
+      reject(new Error('加载超时'));
+    }, 10000);
+    script.src = 'https://fund.eastmoney.com/pingzhongdata/' + fundCode + '.js?v=' + Date.now();
+    script.onload = function() {
+      clearTimeout(timer);
+      var data = {
+        fS_name: window.fS_name,
+        fS_code: window.fS_code,
+        Data_netWorthTrend: window.Data_netWorthTrend || [],
+        Data_ACWorthTrend: window.Data_ACWorthTrend || [],
+        Data_rateInSimilarPersent: window.Data_rateInSimilarPersent || [],
+        Data_rateInSimilarFound: window.Data_rateInSimilarFound || []
+      };
+      // Clean up globals
+      delete window.fS_name;
+      delete window.fS_code;
+      delete window.Data_netWorthTrend;
+      delete window.Data_ACWorthTrend;
+      delete window.Data_rateInSimilarPersent;
+      delete window.Data_rateInSimilarFound;
+      if (script.parentNode) script.parentNode.removeChild(script);
+      resolve(data);
+    };
+    script.onerror = function() {
+      clearTimeout(timer);
+      if (script.parentNode) script.parentNode.removeChild(script);
+      reject(new Error('加载失败'));
+    };
+    document.head.appendChild(script);
+  });
+}
+
+// 搜索基金
+function fetchSearch(keyword) {
+  return jsonp('https://fundsuggest.eastmoney.com/FundSearch/api/FundSearchAPI.ashx?m=1&key=' + encodeURIComponent(keyword), 5000);
+}
+
+// 排行榜 (东方财富 - 使用script标签注入方式)
+function fetchRanking(type, page) {
+  page = page || 1;
+  var typeMap = {all:'all',gp:'gp',hh:'hh',zq:'zq',zs:'zs',qdii:'qdii'};
+  var ft = typeMap[type] || 'all';
+  var url = 'https://fund.eastmoney.com/data/rankhandler.aspx?op=ph&dt=kf&ft=' + ft +
+            '&st=desc&sc=1yzf&pi=' + page + '&pn=50&dx=1&v=' + Date.now();
+
+  // Try fetch first (best when served over HTTP with proper Referer)
+  return fetch(url, {referrerPolicy: 'no-referrer-when-downgrade'})
+    .then(function(r) { return r.text(); })
+    .then(function(txt) {
+      var d = JSON.parse(txt);
+      return parseRankData(d);
+    })
+    .catch(function() {
+      // Fallback: try JSONP
+      return jsonp(url, 8000).then(function(d) {
+        return parseRankData(typeof d === 'string' ? JSON.parse(d) : d);
+      });
+    });
+}
+
+function parseRankData(d) {
+  var datas = (d.Datas || []).map(function(row) {
+    var parts = row.split('|');
+    return {
+      code: parts[0] || '',
+      name: parts[1] || '',
+      nameAbbr: parts[2] || '',
+      date: parts[3] || '',
+      nav: parts[4] || '',
+      accNav: parts[5] || '',
+      dayGrowth: parts[6] || '',
+      weekGrowth: parts[7] || '',
+      monthGrowth: parts[8] || '',
+      month3Growth: parts[9] || '',
+      month6Growth: parts[10] || '',
+      yearGrowth: parts[11] || '',
+      year2Growth: parts[12] || '',
+      year3Growth: parts[13] || '',
+      yearThisGrowth: parts[14] || '',
+      setupGrowth: parts[15] || ''
+    };
+  });
+  return {datas: datas, allPages: d.AllPages || 1, allRecords: d.AllRecords || 0};
+}
+
+// ====== Toast ======
+function toast(msg) {
+  var el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(function() { el.remove(); }, 2500);
+}
+
+// ====== Tab 切换 ======
+document.querySelectorAll('.tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    tab.classList.add('active');
+    var panelId = tab.dataset.panel;
+    document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+    var panel = document.getElementById(panelId);
+    if (panel) panel.classList.add('active');
+    if (panelId === 'ranking') loadRanking();
+    if (panelId === 'watchlist') renderWatchlist();
+    if (panelId === 'compare') renderCompare();
+  });
+});
+
+// ====== 搜索基金 ======
+var currentFundCode = null;
+var fundDataCache = {};
+
+function searchFund() {
+  var kw = document.getElementById('searchInput').value.trim();
+  if (!kw) { toast('请输入基金代码或名称'); return; }
+
+  document.getElementById('detailEmpty').style.display = 'none';
+  document.getElementById('detailContent').style.display = 'none';
+
+  // Show loading in search results area
+  var detail = document.getElementById('detail');
+  var existing = detail.querySelector('.card.search-card');
+  if (existing) existing.remove();
+
+  fetchSearch(kw).then(function(results) {
+    if (!results || !results.Datas || results.Datas.length === 0) {
+      toast('未找到匹配基金');
+      document.getElementById('detailEmpty').style.display = 'block';
+      return;
+    }
+
+    if (results.Datas.length === 1) {
+      // Single result - go straight to detail
+      loadFundDetail(results.Datas[0].CODE);
+    } else {
+      // Multiple results - show list
+      showSearchResults(results.Datas);
+    }
+  }).catch(function(e) {
+    toast('搜索失败: ' + e.message);
+  });
+}
+
+function showSearchResults(datas) {
+  var detail = document.getElementById('detail');
+  var existing = detail.querySelector('.card.search-card');
+  if (existing) existing.remove();
+
+  var html = '<div class="card search-card"><div class="card-title">🔍 搜索结果（点击查看详情）</div><div class="search-results">';
+  datas.forEach(function(d) {
+    html += '<div class="search-item" onclick="loadFundDetail(\'' + d.CODE + '\')" style="cursor:pointer">';
+    html += '<div><span class="code">' + d.CODE + '</span> <span class="name">' + d.NAME + '</span></div>';
+    html += '<span class="type">' + (d.FundType || '') + '</span>';
+    html += '</div>';
+  });
+  html += '</div></div>';
+
+  // Insert before detailEmpty
+  var empty = document.getElementById('detailEmpty');
+  empty.insertAdjacentHTML('beforebegin', html);
+  empty.style.display = 'none';
+}
+
+function loadFundDetail(code) {
+  currentFundCode = code;
+  document.getElementById('detailEmpty').style.display = 'none';
+  document.getElementById('detailContent').style.display = 'block';
+
+  // Remove any search results card
+  var sc = document.querySelector('.search-card');
+  if (sc) sc.remove();
+
+  // Show loading
+  document.getElementById('fundTitle').innerHTML = '<span class="spinner"></span> 加载中...';
+  document.getElementById('fundMetrics').innerHTML = '';
+
+  fetchFundDetail(code).then(function(data) {
+    fundDataCache[code] = data;
+    renderFundDetail(code, data);
+  }).catch(function(e) {
+    // Try alternative: real-time API for basic info
+    fetchRealTime(code).then(function(rt) {
+      if (rt && rt.fundcode) {
+        var data = {
+          fS_name: rt.name,
+          fS_code: rt.fundcode,
+          Data_netWorthTrend: [],
+          Data_ACWorthTrend: [],
+          Data_rateInSimilarPersent: [],
+          Data_rateInSimilarFound: []
+        };
+        fundDataCache[code] = data;
+        renderFundDetail(code, data, rt);
+      } else {
+        toast('加载基金详情失败');
+        document.getElementById('detailContent').style.display = 'none';
+        document.getElementById('detailEmpty').style.display = 'block';
+      }
+    }).catch(function() {
+      toast('加载基金详情失败');
+      document.getElementById('detailContent').style.display = 'none';
+      document.getElementById('detailEmpty').style.display = 'block';
+    });
+  });
+}
+
+function renderFundDetail(code, data, rtData) {
+  // Title
+  var name = data.fS_name || (rtData ? rtData.name : '未知');
+  var escName = name.replace(/'/g, "\\'");
+  document.getElementById('fundTitle').innerHTML = '🏷️ ' + name + ' <span style="color:var(--primary);font-size:14px">' + code + '</span>' +
+    ' <span class="copy-btn" onclick="copyFund(\'' + code + '\',this)" title="复制代码到支付宝搜索">📋 复制</span>' +
+    ' <a class="alipay-link" href="https://www.fund123.cn/matfund/' + code + '.html" target="_blank" title="在蚂蚁财富网页查看">📱 支付宝</a>' +
+    ' <button class="btn btn-outline btn-sm" onclick="toggleWatchlist(\'' + code + '\',\'' + escName + '\')" style="margin-left:auto">💼 持仓</button>';
+
+  // Metrics
+  var netWorth = data.Data_netWorthTrend;
+  var acWorth = data.Data_ACWorthTrend;
+  var latestNAV = netWorth.length > 0 ? netWorth[netWorth.length - 1].y : (rtData ? rtData.dwjz : '--');
+  var latestDate = netWorth.length > 0 ? new Date(netWorth[netWorth.length - 1].x).toLocaleDateString('zh-CN') : '--';
+
+  var metricsHtml = '';
+  metricsHtml += '<div class="metric"><div class="label">最新净值</div><div class="value">' + (typeof latestNAV === 'number' ? latestNAV.toFixed(4) : latestNAV) + '</div></div>';
+  metricsHtml += '<div class="metric"><div class="label">净值日期</div><div class="value" style="font-size:16px">' + latestDate + '</div></div>';
+
+  if (rtData) {
+    var gz = parseFloat(rtData.gsz) || 0;
+    var gztime = rtData.gztime || '';
+    var growth = parseFloat(rtData.gszzl) || 0;
+    var cls = growth >= 0 ? 'up' : 'down';
+    var sign = growth >= 0 ? '+' : '';
+    metricsHtml += '<div class="metric"><div class="label">实时估值</div><div class="value">' + gz.toFixed(4) + '</div></div>';
+    metricsHtml += '<div class="metric"><div class="label">估算涨幅</div><div class="value ' + cls + '">' + sign + growth.toFixed(2) + '%</div></div>';
+    metricsHtml += '<div class="metric"><div class="label">估值时间</div><div class="value" style="font-size:13px">' + gztime + '</div></div>';
+  }
+
+  // Calculate performance metrics from netWorth data
+  var peakWarning = '';
+  if (netWorth.length > 0) {
+    // Find 3-year peak and current position
+    var threeYearIdx = Math.max(0, netWorth.length - 252 * 3);
+    var peak3y = netWorth[threeYearIdx].y;
+    var peak3yDate = new Date(netWorth[threeYearIdx].x).toLocaleDateString('zh-CN');
+    for (var pi = threeYearIdx; pi < netWorth.length; pi++) {
+      if (netWorth[pi].y > peak3y) {
+        peak3y = netWorth[pi].y;
+        peak3yDate = new Date(netWorth[pi].x).toLocaleDateString('zh-CN');
+      }
+    }
+    var fromPeak = peak3y > 0 ? ((latestNAV - peak3y) / peak3y * 100) : 0;
+
+    // 3-year return
+    var yr3Idx = Math.max(0, netWorth.length - 252 * 3);
+    var yr3NAV = netWorth[yr3Idx].y;
+    var yr3Return = yr3NAV > 0 ? ((latestNAV - yr3NAV) / yr3NAV * 100) : 0;
+    var yr3cls = yr3Return >= 0 ? 'up' : 'down';
+    var yr3sign = yr3Return >= 0 ? '+' : '';
+    metricsHtml += '<div class="metric"><div class="label">近3年收益</div><div class="value ' + yr3cls + '">' + yr3sign + yr3Return.toFixed(2) + '%</div></div>';
+
+    // 2-year return
+    var yr2Idx = Math.max(0, netWorth.length - 252 * 2);
+    var yr2NAV = netWorth[yr2Idx].y;
+    var yr2Return = yr2NAV > 0 ? ((latestNAV - yr2NAV) / yr2NAV * 100) : 0;
+    var yr2cls = yr2Return >= 0 ? 'up' : 'down';
+    var yr2sign = yr2Return >= 0 ? '+' : '';
+    metricsHtml += '<div class="metric"><div class="label">近2年收益</div><div class="value ' + yr2cls + '">' + yr2sign + yr2Return.toFixed(2) + '%</div></div>';
+
+    // 1-year return
+    var yr1Idx = Math.max(0, netWorth.length - 252);
+    var yr1NAV = netWorth[yr1Idx].y;
+    var yr1Return = yr1NAV > 0 ? ((latestNAV - yr1NAV) / yr1NAV * 100) : 0;
+    var yr1cls = yr1Return >= 0 ? 'up' : 'down';
+    var yr1sign = yr1Return >= 0 ? '+' : '';
+    metricsHtml += '<div class="metric"><div class="label">近1年收益</div><div class="value ' + yr1cls + '">' + yr1sign + yr1Return.toFixed(2) + '%</div></div>';
+
+    // Max drawdown
+    var peakDD = netWorth[0].y;
+    var maxDD = 0;
+    for (var dd_i = 1; dd_i < netWorth.length; dd_i++) {
+      if (netWorth[dd_i].y > peakDD) peakDD = netWorth[dd_i].y;
+      var dd_v = (peakDD - netWorth[dd_i].y) / peakDD * 100;
+      if (dd_v > maxDD) maxDD = dd_v;
+    }
+    metricsHtml += '<div class="metric"><div class="label">最大回撤</div><div class="value down">-' + maxDD.toFixed(2) + '%</div></div>';
+
+    // Sharpe ratio
+    if (netWorth.length > 20) {
+      var dailyReturns = [];
+      for (var dr_i = 1; dr_i < netWorth.length; dr_i++) {
+        dailyReturns.push((netWorth[dr_i].y - netWorth[dr_i-1].y) / netWorth[dr_i-1].y);
+      }
+      var meanRet = dailyReturns.reduce(function(a,b){return a+b;},0) / dailyReturns.length;
+      var variance = dailyReturns.reduce(function(a,b){return a + (b-meanRet)*(b-meanRet);},0) / dailyReturns.length;
+      var stdRet = Math.sqrt(variance);
+      var sharpe = stdRet > 0 ? (meanRet / stdRet * Math.sqrt(252)) : 0;
+      metricsHtml += '<div class="metric"><div class="label">夏普比率（年化）</div><div class="value" style="font-size:18px">' + sharpe.toFixed(3) + '</div></div>';
+    }
+
+    // Peak warning
+    if (fromPeak > -5) {
+      peakWarning = '<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px">' +
+        '⛰️ <strong style="color:#dc2626">山顶预警</strong> — 当前净值接近3年高点（距峰值 ' + fromPeak.toFixed(1) + '%），峰值日期 ' + peak3yDate + '。' +
+        '近3年涨幅 ' + yr3sign + yr3Return.toFixed(1) + '%。' +
+        (yr3Return > 50 ? '<span style="color:#dc2626">3年涨幅过大，风险较高。</span>' : '') +
+        '<br><span style="font-size:11px;color:var(--sub)">例外：如有近期重大政策催化（如陆家嘴论坛级别），可重新评估。否则建议等回调或减仓。</span></div>';
+    } else if (fromPeak > -15) {
+      peakWarning = '<div style="background:#fff7ed;border:1px solid #fdba74;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px">' +
+        '🟡 <strong style="color:#c2410c">接近山顶</strong> — 距3年高点回撤 ' + Math.abs(fromPeak).toFixed(1) + '%，近3年涨幅 ' + yr3sign + yr3Return.toFixed(1) + '%。可控制仓位，等更深回调。' +
+        '</div>';
+    } else {
+      peakWarning = '<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px">' +
+        '🟢 <strong style="color:#166534">安全区间</strong> — 距3年高点已回撤 ' + Math.abs(fromPeak).toFixed(1) + '%，有安全边际。近3年涨幅 ' + yr3sign + yr3Return.toFixed(1) + '%。' +
+        '</div>';
+    }
+  }
+
+  document.getElementById('fundMetrics').innerHTML = peakWarning + metricsHtml;
+
+  // NAV Chart
+  renderNAVChart(netWorth);
+
+  // Rank Chart
+  if (data.Data_rateInSimilarPersent && data.Data_rateInSimilarPersent.length > 0) {
+    renderRankChart(data.Data_rateInSimilarPersent);
+  }
+
+  // Analysis signal for detail page
+  renderDetailAnalysis(code, name, latestNAV, rtData);
+}
+
+var navChartInstance = null;
+var rankChartInstance = null;
+
+function renderNAVChart(netWorth) {
+  var ctx = document.getElementById('navChart').getContext('2d');
+  if (navChartInstance) navChartInstance.destroy();
+
+  // Sample ~200 data points
+  var step = Math.max(1, Math.floor(netWorth.length / 200));
+  var labels = [], values = [];
+  for (var i = 0; i < netWorth.length; i += step) {
+    labels.push(new Date(netWorth[i].x).toLocaleDateString('zh-CN', {month:'short',day:'numeric'}));
+    values.push(netWorth[i].y);
+  }
+  // Include last point
+  if (netWorth.length > 0 && (netWorth.length - 1) % step !== 0) {
+    var last = netWorth[netWorth.length - 1];
+    labels.push(new Date(last.x).toLocaleDateString('zh-CN', {month:'short',day:'numeric'}));
+    values.push(last.y);
+  }
+
+  navChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: '单位净值',
+        data: values,
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59,130,246,0.08)',
+        fill: true,
+        borderWidth: 1.5,
+        pointRadius: 0,
+        tension: 0.2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      interaction: { intersect: false, mode: 'index' },
+      scales: {
+        x: { ticks: { maxTicksLimit: 12, maxRotation: 0 }, grid: { display: false } },
+        y: { ticks: { callback: function(v) { return v.toFixed(4); } } }
+      }
+    }
+  });
+}
+
+function renderRankChart(rankData) {
+  var ctx = document.getElementById('rankChart').getContext('2d');
+  if (rankChartInstance) rankChartInstance.destroy();
+
+  var step = Math.max(1, Math.floor(rankData.length / 100));
+  var labels = [], values = [];
+  for (var i = 0; i < rankData.length; i += step) {
+    labels.push(new Date(rankData[i][0]).toLocaleDateString('zh-CN', {month:'short',day:'numeric'}));
+    values.push(rankData[i][1]);
+  }
+
+  rankChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: '同类排名百分位',
+        data: values,
+        borderColor: '#22c55e',
+        backgroundColor: 'rgba(34,197,94,0.08)',
+        fill: true,
+        borderWidth: 1.5,
+        pointRadius: 0,
+        tension: 0.2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      interaction: { intersect: false, mode: 'index' },
+      scales: {
+        x: { ticks: { maxTicksLimit: 12, maxRotation: 0 }, grid: { display: false } },
+        y: { min: 0, max: 100, ticks: { callback: function(v){return v + '%';} } }
+      }
+    }
+  });
+}
+
+// ====== 排行榜 ======
+function loadRanking() {
+  var type = document.getElementById('rankType').value;
+  fetchRanking(type).then(function(result) {
+    var datas = result.datas;
+    var html = '';
+    datas.forEach(function(d, idx) {
+      var dayGrowth = parseFloat(d.dayGrowth);
+      var dgCls = dayGrowth >= 0 ? 'color:#ef4444' : 'color:#22c55e';
+      var dgSign = dayGrowth >= 0 ? '+' : '';
+      html += '<tr>';
+      html += '<td class="rank-num">' + (idx + 1) + '</td>';
+      html += '<td style="color:var(--primary);font-weight:600;cursor:pointer" onclick="switchTab(\'detail\');loadFundDetail(\'' + d.code + '\')">' + d.code + '</td>';
+      html += '<td>' + d.name + '</td>';
+      html += '<td>' + d.nav + '</td>';
+      html += '<td>' + d.accNav + '</td>';
+      html += '<td style="' + dgCls + '">' + dgSign + d.dayGrowth + '%</td>';
+      html += '<td>' + formatPct(d.weekGrowth) + '</td>';
+      html += '<td>' + formatPct(d.monthGrowth) + '</td>';
+      html += '<td>' + formatPct(d.month3Growth) + '</td>';
+      html += '<td>' + formatPct(d.yearGrowth) + '</td>';
+      html += '</tr>';
+    });
+    document.getElementById('rankBody').innerHTML = html || '<tr><td colspan="10" class="empty">暂无数据</td></tr>';
+  }).catch(function(e) {
+    document.getElementById('rankBody').innerHTML = '<tr><td colspan="10" class="empty">加载失败: ' + e.message + '</td></tr>';
+  });
+}
+
+function formatPct(v) {
+  if (!v || v === '--') return '--';
+  var n = parseFloat(v);
+  var sign = n >= 0 ? '+' : '';
+  var cls = n >= 0 ? 'color:#ef4444' : 'color:#22c55e';
+  return '<span style="' + cls + '">' + sign + n.toFixed(2) + '%</span>';
+}
+
+function switchTab(panelId) {
+  document.querySelectorAll('.tab').forEach(function(t) {
+    t.classList.toggle('active', t.dataset.panel === panelId);
+  });
+  document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+  document.getElementById(panelId).classList.add('active');
+}
+
+// ====== 持仓管理 ======
+
+function getPortfolio() {
+  try {
+    var raw = localStorage.getItem('fund-portfolio');
+    // Migrate old watchlist data
+    if (!raw) {
+      var old = localStorage.getItem('fund-watchlist');
+      if (old) {
+        var migrated = JSON.parse(old).map(function(f) { return {code: f.code, name: f.name, amount: 0}; });
+        localStorage.setItem('fund-portfolio', JSON.stringify(migrated));
+        localStorage.removeItem('fund-watchlist');
+        return migrated;
+      }
+    }
+    return JSON.parse(raw || '[]');
+  } catch(e) { return []; }
+}
+
+function savePortfolio(list) {
+  localStorage.setItem('fund-portfolio', JSON.stringify(list));
+}
+
+function addHolding() {
+  var codeInput = document.getElementById('wlInput');
+  var amtInput = document.getElementById('wlAmount');
+  var code = codeInput.value.trim();
+  var amount = parseFloat(amtInput.value) || 0;
+
+  if (!code) { toast('请输入基金代码'); return; }
+  if (amount <= 0) { toast('请输入持有金额（元）'); return; }
+
+  var list = getPortfolio();
+  var existing = list.find(function(f) { return f.code === code; });
+  if (existing) {
+    existing.amount = amount;
+    savePortfolio(list);
+    codeInput.value = '';
+    amtInput.value = '';
+    refreshPortfolio();
+    toast('✅ 已更新持仓：' + (existing.name || code) + ' → ¥' + amount.toLocaleString());
+    return;
+  }
+
+  fetchRealTime(code).then(function(rt) {
+    if (!rt || !rt.name) { toast('未找到该基金'); return; }
+    list.push({code: code, name: rt.name, amount: amount});
+    savePortfolio(list);
+    codeInput.value = '';
+    amtInput.value = '';
+    refreshPortfolio();
+    toast('✅ 已同步支付宝持仓：' + rt.name + ' ¥' + amount.toLocaleString());
+  }).catch(function() {
+    fetchSearch(code).then(function(r) {
+      if (r && r.Datas && r.Datas.length > 0) {
+        list.push({code: r.Datas[0].CODE, name: r.Datas[0].NAME, amount: amount});
+        savePortfolio(list);
+        codeInput.value = '';
+        amtInput.value = '';
+        refreshPortfolio();
+        toast('✅ 已同步：' + r.Datas[0].NAME + ' ¥' + amount.toLocaleString());
+      } else {
+        toast('未找到该基金，请检查代码');
+      }
+    }).catch(function() { toast('添加失败，请检查代码'); });
+  });
+}
+
+function toggleWatchlist(code, name) {
+  // Migrated to portfolio system
+  var list = getPortfolio();
+  var idx = list.findIndex(function(f) { return f.code === code; });
+  if (idx >= 0) {
+    list.splice(idx, 1);
+    savePortfolio(list);
+    toast('已移除持仓');
+    refreshPortfolio();
+  } else {
+    // Prompt for amount
+    document.getElementById('wlInput').value = code;
+    document.getElementById('wlAmount').value = '';
+    document.getElementById('wlAmount').focus();
+    switchTab('watchlist');
+    toast('请输入持有金额后点击添加');
+  }
+}
+
+function removeHolding(code) {
+  var list = getPortfolio().filter(function(f) { return f.code !== code; });
+  savePortfolio(list);
+  refreshPortfolio();
+}
+
+function refreshPortfolio() {
+  renderPortfolio();
+}
+
+// ====== 基金分析引擎 ======
+function analyzeFund(code, name, nav, gz, gzzl, amount) {
+  var signal = "hold";
+  var signalLabel = "🟡 持有";
+  var position = "standard";
+  var positionLabel = "维持";
+  var reasons = [];
+
+  var isQDII = name.indexOf("QDII") >= 0 || name.indexOf("纳斯达克") >= 0 || name.indexOf("纳指") >= 0 || name.indexOf("标普") >= 0 || name.indexOf("日经") >= 0 || name.indexOf("日本") >= 0 || name.indexOf("德国") >= 0 || name.indexOf("DAX") >= 0 || name.indexOf("越南") >= 0 || name.indexOf("新兴市场") >= 0 || name.indexOf("全球") >= 0;
+  var isGold = name.indexOf("黄金") >= 0 || name.indexOf("上海金") >= 0;
+  var isAStock = !isQDII && !isGold;
+
+  if (gzzl > 3) {
+    if (gzzl > 5) { signal = "sell"; signalLabel = "🔴 减仓"; position = "decrease"; positionLabel = "减配30%"; reasons.push("短期过热"); }
+  } else if (gzzl < -2) {
+    if (gzzl < -4) { signal = "buy"; signalLabel = "🟢 加仓"; position = "increase"; positionLabel = "增配20%"; reasons.push("回调布局"); }
+  }
+
+  if (isGold) {
+    if (gzzl < -1.5) { signal = "buy"; signalLabel = "🟢 加仓"; position = "increase"; positionLabel = "增配10%"; reasons.push("黄金回调良机"); }
+    else { signal = "hold"; signalLabel = "🟡 持有"; position = "standard"; positionLabel = "维持"; reasons.push("黄金避险资产"); }
+  }
+
+  if (isQDII) {
+    if (name.indexOf("纳斯达克") >= 0 || name.indexOf("纳指") >= 0 || name.indexOf("标普") >= 0) {
+      if (gzzl < -1.5) { signal = "buy"; signalLabel = "🟢 加仓"; position = "increase"; positionLabel = "增配15%"; reasons.push("美股回调入场"); }
+      else { signal = "hold"; signalLabel = "🟡 持有"; position = "standard"; positionLabel = "维持"; reasons.push("美股长期上行"); }
+    }
+    if (name.indexOf("日经") >= 0 || name.indexOf("日本") >= 0) {
+      if (gzzl < -2) { signal = "buy"; signalLabel = "🟢 加仓"; position = "increase"; positionLabel = "增配10%"; reasons.push("日股回调"); }
+      else { signal = "hold"; signalLabel = "🟡 持有"; position = "standard"; positionLabel = "维持"; reasons.push("日股估值合理"); }
+    }
+    if (name.indexOf("德国") >= 0 || name.indexOf("DAX") >= 0) {
+      signal = "hold"; signalLabel = "🟡 持有"; position = "standard"; positionLabel = "维持"; reasons.push("欧洲龙头");
+    }
+    if (name.indexOf("越南") >= 0) { signal = "hold"; signalLabel = "🟡 持有"; position = "standard"; positionLabel = "维持"; reasons.push("越南新兴市场"); }
+    if (name.indexOf("新兴市场") >= 0) {
+      if (gzzl > 5) { signal = "sell"; signalLabel = "🔴 减仓"; position = "decrease"; positionLabel = "减配20%"; reasons.push("短期暴涨"); }
+      else if (gzzl < -2) { signal = "buy"; signalLabel = "🟢 加仓"; position = "increase"; positionLabel = "增配10%"; reasons.push("回调机会"); }
+      else { signal = "hold"; signalLabel = "🟡 持有"; position = "standard"; positionLabel = "维持"; reasons.push("分散配置"); }
+    }
+    if (name.indexOf("全球") >= 0) { signal = "hold"; signalLabel = "🟡 持有"; position = "standard"; positionLabel = "维持"; reasons.push("全球分散"); }
+  }
+
+  if (isAStock) {
+    var policyGood = ["新能源","储能","电池","有色","稀土","机器人","医药","互联网","港股通"].some(function(k){ return name.indexOf(k) >= 0; });
+    if (policyGood && gzzl < -1) { signal = "buy"; signalLabel = "🟢 加仓"; position = "increase"; positionLabel = "增配15%"; reasons.push("政策利好"); }
+    else if (policyGood) { signal = "hold"; signalLabel = "🟡 持有"; position = "standard"; positionLabel = "维持"; reasons.push("政策支持方向"); }
+    else if (gzzl > 4) { signal = "sell"; signalLabel = "🔴 减仓"; position = "decrease"; positionLabel = "减配20%"; reasons.push("非主线锁利"); }
+  }
+
+  if (amount > 2000) { reasons.push("重仓注意分散"); if (signal === "hold") { position = "decrease"; positionLabel = "减配10%"; } }
+  if (amount < 20) { reasons.push("仓位过轻"); }
+  if (reasons.length === 0) { reasons.push("信号中性"); }
+
+  return { signal: signal, signalLabel: signalLabel, position: position, positionLabel: positionLabel, reason: reasons.slice(0,2).join("；") };
+}
+
+
+// ====== 行业分类 ======
+function getFundSector(name) {
+  if (!name) return { sector: '其他', cls: 'other', icon: '📦' };
+  var n = name;
+  // Tech / US stocks
+  if (n.indexOf('纳斯达克') >= 0 || n.indexOf('纳指') >= 0) return { sector: '美股科技', cls: 'tech', icon: '💻' };
+  if (n.indexOf('标普') >= 0) return { sector: '美股大盘', cls: 'sp500', icon: '🇺🇸' };
+  if (n.indexOf('互联网') >= 0 || n.indexOf('港股通') >= 0) return { sector: '互联网', cls: 'internet', icon: '🌐' };
+  if (n.indexOf('机器人') >= 0) return { sector: '机器人', cls: 'robot', icon: '🤖' };
+  // Healthcare (before 全球 so 全球医药 → 医药)
+  if (n.indexOf('医药') >= 0 || n.indexOf('医疗') >= 0) return { sector: '医药健康', cls: 'health', icon: '💊' };
+  // Gold
+  if (n.indexOf('黄金') >= 0 || n.indexOf('上海金') >= 0) return { sector: '黄金', cls: 'gold', icon: '🥇' };
+  // New energy / Materials
+  if (n.indexOf('新能源') >= 0) return { sector: '新能源', cls: 'energy', icon: '⚡' };
+  if (n.indexOf('储能') >= 0 || n.indexOf('电池') >= 0) return { sector: '储能电池', cls: 'battery', icon: '🔋' };
+  if (n.indexOf('有色') >= 0 || n.indexOf('稀土') >= 0) return { sector: '有色金属', cls: 'metal', icon: '🪨' };
+  // Japan
+  if (n.indexOf('日经') >= 0 || n.indexOf('日本') >= 0) return { sector: '日本市场', cls: 'japan', icon: '🗾' };
+  // Europe
+  if (n.indexOf('德国') >= 0 || n.indexOf('DAX') >= 0) return { sector: '欧洲市场', cls: 'europe', icon: '🇪🇺' };
+  // Emerging
+  if (n.indexOf('越南') >= 0) return { sector: '越南市场', cls: 'vietnam', icon: '🇻🇳' };
+  if (n.indexOf('新兴市场') >= 0) return { sector: '新兴市场', cls: 'emerging', icon: '🌏' };
+  // Global growth (QDII) — after specific geo markets
+  if (n.indexOf('全球成长') >= 0) return { sector: '全球成长', cls: 'global', icon: '🌍' };
+  if (n.indexOf('全球') >= 0) return { sector: '全球混合', cls: 'global', icon: '🌍' };
+  // A-stock others
+  return { sector: 'A股其他', cls: 'astock', icon: '📊' };
+}
+
+var sectorColors = {
+  tech: '#3b82f6', sp500: '#2563eb', internet: '#6366f1', robot: '#8b5cf6',
+  health: '#ec4899',
+  gold: '#f59e0b',
+  energy: '#22c55e', battery: '#10b981', metal: '#84cc16',
+  japan: '#ef4444',
+  europe: '#0ea5e9',
+  vietnam: '#14b8a6', emerging: '#06b6d4',
+  global: '#64748b',
+  astock: '#94a3b8', other: '#cbd5e1'
+};
+
+function renderSectorDistribution(results) {
+  var card = document.getElementById('sectorChartCard');
+  if (!card) return;
+  card.style.display = 'block';
+
+  // Aggregate by sector
+  var sectors = {};
+  results.forEach(function(f) {
+    var name = f._name || f.name || '';
+    var s = getFundSector(name);
+    if (!sectors[s.sector]) sectors[s.sector] = { amount: 0, funds: [], cls: s.cls, icon: s.icon };
+    sectors[s.sector].amount += f.amount || 0;
+    sectors[s.sector].funds.push(f);
+  });
+
+  // Render sector summary cards
+  var grid = document.getElementById('sectorGrid');
+  if (!grid) return;
+  var totalAmount = results.reduce(function(a,b){return a + (b.amount||0);}, 0);
+  var entries = Object.keys(sectors).map(function(k){ return {name:k, data:sectors[k]}; });
+  entries.sort(function(a,b){ return b.data.amount - a.data.amount; });
+
+  var html = '';
+  entries.forEach(function(e) {
+    var pct = totalAmount > 0 ? (e.data.amount / totalAmount * 100).toFixed(1) : 0;
+    var color = sectorColors[e.data.cls] || '#94a3b8';
+    html += '<div style="background:#fff;border-left:4px solid ' + color + ';border-radius:8px;padding:12px 14px;box-shadow:0 1px 2px rgba(0,0,0,.04)">';
+    html += '<div style="font-weight:700;font-size:14px;margin-bottom:4px">' + (e.data.icon||'') + ' ' + e.data.name + ' <span style="color:var(--sub);font-weight:400;font-size:12px">' + pct + '%</span></div>';
+    html += '<div style="font-size:18px;font-weight:700;color:' + color + '">¥' + e.data.amount.toLocaleString('zh-CN', {minimumFractionDigits:0,maximumFractionDigits:2}) + '</div>';
+    html += '<div style="font-size:11px;color:var(--sub);margin-top:2px">' + e.data.funds.length + ' 只基金</div>';
+    html += '</div>';
+  });
+  grid.innerHTML = html;
+
+  // Render sector pie chart
+  var ctx = document.getElementById('sectorChart');
+  if (!ctx) return;
+  ctx = ctx.getContext('2d');
+  if (window.sectorChartInstance) window.sectorChartInstance.destroy();
+
+  window.sectorChartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: entries.map(function(e){ return e.name; }),
+      datasets: [{ data: entries.map(function(e){ return e.data.amount; }), backgroundColor: entries.map(function(e){ return sectorColors[e.data.cls] || '#94a3b8'; }), borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { padding: 10, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              var total = ctx.dataset.data.reduce(function(a,b){return a+b;},0);
+              var pct = total > 0 ? (ctx.parsed / total * 100).toFixed(1) : 0;
+              return '¥' + ctx.parsed.toLocaleString() + ' (' + pct + '%)';
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+
+// ====== 详情页分析信号 ======
+function renderDetailAnalysis(code, name, nav, rtData) {
+  var gz = rtData ? parseFloat(rtData.gsz) || nav : nav;
+  var gzzl = rtData ? parseFloat(rtData.gszzl) || 0 : 0;
+  var analysis = analyzeFund(code, name, nav, gz, gzzl, 0);
+
+  // Check if in portfolio for amount
+  var portfolio = getPortfolio();
+  var holding = null;
+  for (var i = 0; i < portfolio.length; i++) {
+    if (portfolio[i].code === code) { holding = portfolio[i]; break; }
+  }
+  if (holding && holding.amount > 0) {
+    analysis = analyzeFund(code, name, nav, gz, gzzl, holding.amount);
+  }
+
+  var sigCls = analysis.signal === 'buy' ? '#22c55e' : analysis.signal === 'sell' ? '#ef4444' : '#f59e0b';
+  var sigBg = analysis.signal === 'buy' ? '#f0fdf4' : analysis.signal === 'sell' ? '#fef2f2' : '#fffbeb';
+  var sigBorder = analysis.signal === 'buy' ? '#bbf7d0' : analysis.signal === 'sell' ? '#fecaca' : '#fde68a';
+
+  // Find and remove old analysis card
+  var oldCard = document.getElementById('detailAnalysisCard');
+  if (oldCard) oldCard.remove();
+
+  var cardHtml = '<div class="card" id="detailAnalysisCard" style="border-left:4px solid ' + sigCls + ';background:' + sigBg + '">';
+  cardHtml += '<div class="card-title">📊 投资建议</div>';
+  cardHtml += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">';
+  cardHtml += '<div class="metric"><div class="label">操作信号</div><div class="value" style="color:' + sigCls + ';font-size:24px">' + analysis.signalLabel + '</div></div>';
+  cardHtml += '<div class="metric"><div class="label">建议仓位</div><div class="value" style="font-size:20px">' + analysis.positionLabel + '</div></div>';
+  cardHtml += '<div class="metric"><div class="label">分析依据</div><div class="value" style="font-size:13px;color:var(--sub)">' + analysis.reason + '</div></div>';
+  if (holding && holding.amount > 0) {
+    cardHtml += '<div class="metric"><div class="label">当前持有</div><div class="value" style="font-size:18px">¥' + holding.amount.toLocaleString('zh-CN') + '</div></div>';
+  } else {
+    cardHtml += '<div class="metric"><div class="label">持仓状态</div><div class="value" style="font-size:14px;color:var(--sub)">未持有</div></div>';
+  }
+  cardHtml += '</div>';
+  cardHtml += '<div style="margin-top:10px;font-size:12px;color:var(--sub)">💡 以上分析基于实时估值和技术指标，仅供参考，不构成投资建议。投资有风险，决策需谨慎。</div>';
+  cardHtml += '</div>';
+
+  // Insert after the metrics card (first card in detailContent)
+  var detailContent = document.getElementById('detailContent');
+  var firstCard = detailContent.querySelector('.card');
+  if (firstCard && firstCard.nextSibling) {
+    firstCard.nextSibling.insertAdjacentHTML('beforebegin', cardHtml);
+  } else if (firstCard) {
+    firstCard.insertAdjacentHTML('afterend', cardHtml);
+  }
+}
+
+function renderPortfolio() {
+  var list = getPortfolio();
+  var tbody = document.getElementById('wlBody');
+  var countEl = document.getElementById('portfolioCount');
+
+  countEl.textContent = list.length > 0 ? '共 ' + list.length + ' 只基金' : '';
+
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="12" class="empty"><div class="icon">📥</div><p>还没有同步持仓</p><p style="font-size:12px;color:var(--sub)">打开支付宝 → 我的 → 理财 → 基金 → 查看持有基金代码和金额 → 填入上方表单</p></td></tr>';
+    document.getElementById('portfolioSummary').style.display = 'none';
+    
+    return;
+  }
+
+  tbody.innerHTML = '<tr><td colspan="12" class="loading"><span class="spinner"></span> 刷新中...</td></tr>';
+
+  var promises = list.map(function(f) {
+    return fetchRealTime(f.code).then(function(rt) {
+      if (rt && rt.fundcode) {
+        f.nav = parseFloat(rt.dwjz) || 0;
+        f.gz = parseFloat(rt.gsz) || 0;
+        f.gzzl = parseFloat(rt.gszzl) || 0;
+        f.gztime = rt.gztime;
+        f._name = rt.name;
+      }
+      return f;
+    }).catch(function() { return f; });
+  });
+
+  Promise.all(promises).then(function(results) {
+    // Calculate totals
+    var totalAmount = 0;
+    var totalValue = 0;
+    var todayPnL = 0;
+    var validResults = [];
+
+    results.forEach(function(f) {
+      totalAmount += f.amount || 0;
+      var nav = f.nav || 0;
+      var gz = f.gz || nav || 0;
+      var shares = nav > 0 ? (f.amount / nav) : 0;
+      var currentValue = gz > 0 ? shares * gz : f.amount;
+      var dailyChange = f.gzzl ? (currentValue * f.gzzl / 100) : 0;
+      totalValue += currentValue;
+      todayPnL += dailyChange;
+      validResults.push(f);
+    });
+
+    var totalReturn = totalAmount > 0 ? (totalValue - totalAmount) : 0;
+    var totalReturnPct = totalAmount > 0 ? (totalReturn / totalAmount * 100) : 0;
+
+    // Summary
+    var summary = document.getElementById('portfolioSummary');
+    summary.style.display = 'block';
+    var retCls = todayPnL >= 0 ? 'up' : 'down';
+    var retSign = todayPnL >= 0 ? '+' : '';
+    var retClsTotal = totalReturn >= 0 ? 'up' : 'down';
+    var retSignTotal = totalReturn >= 0 ? '+' : '';
+    document.getElementById('portfolioMetrics').innerHTML =
+      '<div class="metric"><div class="label">持仓本金</div><div class="value" style="font-size:18px">¥' + totalAmount.toLocaleString('zh-CN', {minimumFractionDigits: 0, maximumFractionDigits: 2}) + '</div></div>' +
+      '<div class="metric"><div class="label">估算市值</div><div class="value" style="font-size:18px">¥' + totalValue.toLocaleString('zh-CN', {minimumFractionDigits: 0, maximumFractionDigits: 2}) + '</div></div>' +
+      '<div class="metric"><div class="label">今日估算盈亏</div><div class="value ' + retCls + '">' + retSign + '¥' + todayPnL.toFixed(2) + '</div></div>' +
+      '<div class="metric"><div class="label">总盈亏</div><div class="value ' + retClsTotal + '">' + retSignTotal + '¥' + totalReturn.toFixed(2) + '（' + retSignTotal + totalReturnPct.toFixed(2) + '%）</div></div>';
+
+    // Table
+    var html = '';
+    validResults.forEach(function(f) {
+      var nav = f.nav || 0;
+      var gz = f.gz || nav || 0;
+      var shares = nav > 0 ? (f.amount / nav) : 0;
+      var currentValue = gz > 0 ? shares * gz : f.amount;
+      var dailyChange = f.gzzl ? (currentValue * f.gzzl / 100) : 0;
+      var gzGrowth = f.gzzl || 0;
+      var cls = gzGrowth >= 0 ? 'color:#ef4444' : 'color:#22c55e';
+      var sign = gzGrowth >= 0 ? '+' : '';
+      var pnlCls = dailyChange >= 0 ? 'color:#ef4444' : 'color:#22c55e';
+
+      html += '<tr>';
+      html += '<td style="font-weight:600;color:var(--primary);cursor:pointer" onclick="switchTab(\'detail\');loadFundDetail(\'' + f.code + '\')">' + f.code + '</td>';
+      html += '<td>' + (f._name || f.name || '--') + '</td>';
+      html += '<td>' + (nav > 0 ? nav.toFixed(4) : '--') + '</td>';
+      html += '<td>' + (gz > 0 ? gz.toFixed(4) : '--') + '</td>';
+      html += '<td style="' + cls + '">' + sign + gzGrowth.toFixed(2) + '%</td>';
+      html += '<td>¥' + f.amount.toLocaleString('zh-CN') + '</td>';
+      html += '<td>¥' + currentValue.toFixed(2) + '</td>';
+      html += '<td style="' + pnlCls + '">' + (dailyChange >= 0 ? '+' : '') + '¥' + dailyChange.toFixed(2) + '</td>';
+      var retRate = f.amount > 0 ? ((currentValue - f.amount) / f.amount * 100) : 0;
+      var retCls = retRate >= 0 ? 'color:#ef4444' : 'color:#22c55e';
+      html += '<td style="' + retCls + ';font-weight:600">' + (retRate >= 0 ? '+' : '') + retRate.toFixed(2) + '%</td>';
+      var analysis = analyzeFund(f.code, f._name || f.name || '', nav, gz, gzGrowth, f.amount);
+      var sigCls = analysis.signal === 'buy' ? 'color:#22c55e;font-weight:600' : analysis.signal === 'sell' ? 'color:#ef4444;font-weight:600' : 'color:#f59e0b;font-weight:600';
+      html += '<td style="' + sigCls + ';font-size:12px" title="' + analysis.reason + '">' + analysis.signalLabel + '</td>';
+      html += '<td style="font-size:12px;color:var(--sub)">' + analysis.positionLabel + '</td>';
+      html += '<td><div style="display:flex;gap:4px"><span class="copy-btn" onclick="copyFund(\'' + f.code + '\',this)" title="复制代码">📋</span><button class="btn btn-danger btn-sm" onclick="removeHolding(\'' + f.code + '\')">删除</button></div></td>';
+      html += '</tr>';
+    });
+    tbody.innerHTML = html;
+
+    // Sector distribution
+    renderSectorDistribution(validResults);
+
+  }).catch(function() {
+    tbody.innerHTML = '<tr><td colspan="12" class="empty">刷新失败，请重试</td></tr>';
+  });
+}
+
+
+
+// ====== 基金对比 ======
+var compareList = [];
+
+function addCompare() {
+  var input = document.getElementById('cmpInput');
+  var code = input.value.trim();
+  if (!code) return;
+  if (compareList.length >= 5) { toast('最多对比5只基金'); return; }
+  if (compareList.find(function(f) { return f.code === code; })) { toast('已添加'); return; }
+
+  fetchRealTime(code).then(function(rt) {
+    if (!rt || !rt.name) { toast('未找到该基金'); return; }
+    compareList.push({code: code, name: rt.name, nav: rt.dwjz, gz: rt.gsz});
+    input.value = '';
+    renderCompare();
+    loadCompareChart();
+  }).catch(function() {
+    fetchSearch(code).then(function(r) {
+      if (r && r.Datas && r.Datas.length > 0) {
+        compareList.push({code: r.Datas[0].CODE, name: r.Datas[0].NAME});
+        input.value = '';
+        renderCompare();
+        loadCompareChart();
+      }
+    }).catch(function() { toast('添加失败'); });
+  });
+}
+
+function removeCompare(code) {
+  compareList = compareList.filter(function(f) { return f.code !== code; });
+  renderCompare();
+  if (compareList.length > 0) loadCompareChart();
+}
+
+function renderCompare() {
+  var grid = document.getElementById('cmpGrid');
+  var chartSection = document.getElementById('cmpChart');
+
+  if (compareList.length === 0) {
+    grid.innerHTML = '<div class="empty"><div class="icon">⚖️</div><p>添加基金开始对比</p></div>';
+    chartSection.style.display = 'none';
+    return;
+  }
+
+  var html = '';
+  compareList.forEach(function(f) {
+    html += '<div class="compare-card">';
+    html += '<span class="remove" onclick="removeCompare(\'' + f.code + '\')">✕</span>';
+    html += '<div style="font-weight:700;color:var(--primary);font-size:16px">' + f.code + '</div>';
+    html += '<div style="font-size:14px;margin-top:4px">' + f.name + '</div>';
+    html += '<div style="margin-top:8px;font-size:13px;color:var(--sub)">净值: ' + (f.nav || '--') + '</div>';
+    if (f.gz) html += '<div style="font-size:13px;color:var(--sub)">估值: ' + f.gz + '</div>';
+    html += '</div>';
+  });
+  grid.innerHTML = html;
+  chartSection.style.display = 'block';
+}
+
+var compareChartInstance = null;
+
+function loadCompareChart() {
+  var chartSection = document.getElementById('cmpChart');
+  chartSection.style.display = 'block';
+
+  var promises = compareList.map(function(f) {
+    return fetchFundDetail(f.code).then(function(data) {
+      return {code: f.code, name: f.name, data: data};
+    }).catch(function() { return {code: f.code, name: f.name, data: null}; });
+  });
+
+  Promise.all(promises).then(function(results) {
+    var ctx = document.getElementById('compareChart').getContext('2d');
+    if (compareChartInstance) compareChartInstance.destroy();
+
+    var colors = ['#3b82f6','#ef4444','#22c55e','#f59e0b','#8b5cf6'];
+    var datasets = [];
+    var chartLabels = [];
+
+    results.forEach(function(r, idx) {
+      if (!r.data || !r.data.Data_netWorthTrend || r.data.Data_netWorthTrend.length === 0) return;
+
+      var netWorth = r.data.Data_netWorthTrend;
+      var step = Math.max(1, Math.floor(netWorth.length / 100));
+      var values = [];
+      var baseNAV = netWorth[0].y;
+
+      for (var i = 0; i < netWorth.length; i += step) {
+        if (idx === 0) chartLabels.push(new Date(netWorth[i].x).toLocaleDateString('zh-CN', {month:'short',day:'numeric'}));
+        values.push(parseFloat((netWorth[i].y / baseNAV * 100).toFixed(2)));
+      }
+      if ((netWorth.length - 1) % step !== 0) {
+        if (idx === 0) chartLabels.push(new Date(netWorth[netWorth.length-1].x).toLocaleDateString('zh-CN', {month:'short',day:'numeric'}));
+        values.push(parseFloat((netWorth[netWorth.length-1].y / baseNAV * 100).toFixed(2)));
+      }
+
+      datasets.push({
+        label: r.code + ' ' + r.name,
+        data: values,
+        borderColor: colors[idx % colors.length],
+        borderWidth: 1.5,
+        pointRadius: 0,
+        tension: 0.2
+      });
+    });
+
+    compareChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: { labels: chartLabels, datasets: datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } },
+        interaction: { intersect: false, mode: 'index' },
+        scales: {
+          x: { ticks: { maxTicksLimit: 10, maxRotation: 0 }, grid: { display: false } },
+          y: { title: { display: true, text: '净值归一化 (初始=100)' } }
+        }
+      }
+    });
+  });
+}
+
+// ====== 定投计算器 ======
+function calculateDCA() {
+  var code = document.getElementById('dcaCode').value.trim();
+  var amount = parseFloat(document.getElementById('dcaAmount').value) || 1000;
+  var years = parseInt(document.getElementById('dcaYears').value) || 3;
+
+  if (!code) { toast('请输入基金代码'); return; }
+
+  document.getElementById('dcaResult').innerHTML = '<span class="spinner"></span> 计算中...';
+
+  fetchFundDetail(code).then(function(data) {
+    if (!data.Data_netWorthTrend || data.Data_netWorthTrend.length === 0) {
+      document.getElementById('dcaResult').innerHTML = '<div style="color:var(--sub)">无净值数据</div>';
+      return;
+    }
+
+    var netWorth = data.Data_netWorthTrend;
+    var nMonths = years * 12;
+    var totalShares = 0;
+    var totalInvested = 0;
+    var monthlyRecords = [];
+
+    // Take last N months of data
+    var startIdx = Math.max(0, netWorth.length - nMonths * 22); // ~22 trading days/month
+
+    // Simulate monthly investment on first trading day of each month
+    var currentMonth = -1;
+    for (var i = startIdx; i < netWorth.length; i++) {
+      var d = new Date(netWorth[i].x);
+      var m = d.getFullYear() * 12 + d.getMonth();
+      if (m !== currentMonth) {
+        currentMonth = m;
+        var nav = netWorth[i].y;
+        var shares = amount / nav;
+        totalShares += shares;
+        totalInvested += amount;
+        monthlyRecords.push({date: d, nav: nav, shares: shares, invested: amount});
+      }
+    }
+
+    var latestNAV = netWorth[netWorth.length - 1].y;
+    var totalValue = totalShares * latestNAV;
+    var totalReturn = totalValue - totalInvested;
+    var returnPct = (totalReturn / totalInvested * 100);
+    var annualizedReturn = (Math.pow(totalValue / totalInvested, 1 / years) - 1) * 100;
+
+    var cls = totalReturn >= 0 ? 'up' : 'down';
+    var sign = totalReturn >= 0 ? '+' : '';
+
+    var html = '';
+    html += '<div class="big" style="color:' + (totalReturn >= 0 ? '#166534' : '#dc2626') + '">' + sign + totalReturn.toFixed(2) + ' 元</div>';
+    html += '<div style="margin-top:8px;line-height:1.8">';
+    html += '定投总本金：<strong>' + totalInvested.toFixed(2) + ' 元</strong>（' + monthlyRecords.length + ' 期）<br>';
+    html += '最终总市值：<strong>' + totalValue.toFixed(2) + ' 元</strong><br>';
+    html += '总收益率：<strong style="color:' + (totalReturn >= 0 ? '#ef4444' : '#22c55e') + '">' + sign + returnPct.toFixed(2) + '%</strong><br>';
+    html += '年化收益率：<strong>' + (annualizedReturn >= 0 ? '+' : '') + annualizedReturn.toFixed(2) + '%</strong><br>';
+    html += '期末净值：<strong>' + latestNAV.toFixed(4) + '</strong>';
+    html += '</div>';
+
+    document.getElementById('dcaResult').innerHTML = html;
+  }).catch(function(e) {
+    document.getElementById('dcaResult').innerHTML = '<div style="color:#ef4444">计算失败: ' + e.message + '</div>';
+  });
+}
+
+// ====== 政策风向 ======
+function searchPolicySector(kw) {
+  document.getElementById('searchInput').value = kw;
+  switchTab('detail');
+  searchFund();
+}
+
+function goFund(code) {
+  switchTab('detail');
+  loadFundDetail(code);
+}
+
+// ====== 全球价值投资 ======
+var globalStockData = null;
+var globalChartInstance = null;
+
+function quickGlobalSearch(sym) {
+  document.getElementById('globalSearch').value = sym;
+  // Highlight badge
+  document.querySelectorAll('#marketBadges .market-badge').forEach(function(b) {
+    b.classList.toggle('active', b.textContent.trim().startsWith(sym));
+  });
+  searchGlobalStock();
+}
+
+function searchGlobalStock() {
+  var symbol = document.getElementById('globalSearch').value.trim().toUpperCase();
+  if (!symbol) { toast('请输入股票代码'); return; }
+
+  document.getElementById('globalEmpty').style.display = 'none';
+  document.getElementById('globalContent').style.display = 'block';
+  document.getElementById('globalTitle').innerHTML = '<span class="spinner"></span> 加载中...';
+  document.getElementById('globalMetrics').innerHTML = '';
+  document.getElementById('buffettScore').innerHTML = '';
+  document.getElementById('buffettChecklist').innerHTML = '';
+  document.getElementById('mungerChecklist').innerHTML = '';
+
+  // Fetch data from Yahoo Finance
+  var promises = [
+    fetchYahooChart(symbol),
+    fetchYahooQuote(symbol)
+  ];
+
+  Promise.all(promises).then(function(results) {
+    globalStockData = { chart: results[0], quote: results[1] };
+    renderGlobalStock(symbol, globalStockData);
+  }).catch(function(e) {
+    toast('加载失败: ' + e.message + '（请检查代码是否正确）');
+    document.getElementById('globalContent').style.display = 'none';
+    document.getElementById('globalEmpty').style.display = 'block';
+  });
+}
+
+function fetchYahooChart(symbol) {
+  var url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + symbol + '?range=2y&interval=1d';
+  return fetch(url).then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }).then(function(d) {
+    if (d.chart.error) throw new Error(d.chart.error.description || '数据错误');
+    return d.chart.result[0];
+  });
+}
+
+function fetchYahooQuote(symbol) {
+  var modules = 'price,summaryDetail,defaultKeyStatistics,financialData';
+  var url = 'https://query2.finance.yahoo.com/v10/finance/quoteSummary/' + symbol + '?modules=' + modules;
+  return fetch(url).then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }).then(function(d) {
+    if (d.quoteSummary.error) throw new Error(d.quoteSummary.error.description || '数据错误');
+    return d.quoteSummary.result[0];
+  });
+}
+
+function renderGlobalStock(symbol, data) {
+  var c = data.chart;
+  var q = data.quote;
+  var meta = c.meta;
+  var price = q && q.price ? q.price : {};
+  var summary = q && q.summaryDetail ? q.summaryDetail : {};
+  var stats = q && q.defaultKeyStatistics ? q.defaultKeyStatistics : {};
+  var fin = q && q.financialData ? q.financialData : {};
+
+  var name = price.shortName || price.longName || symbol;
+  var marketPrice = meta.regularMarketPrice || price.regularMarketPrice?.raw || 0;
+  var prevClose = meta.chartPreviousClose || price.regularMarketPreviousClose?.raw || 0;
+  var change = marketPrice - prevClose;
+  var changePct = prevClose > 0 ? (change / prevClose * 100) : 0;
+  var currency = meta.currency || 'USD';
+  var csign = currency === 'JPY' ? '¥' : '$';
+
+  document.getElementById('globalTitle').innerHTML = '🏷️ ' + name + ' <span style="color:var(--primary);font-size:14px">' + symbol + '</span>' +
+    ' <span style="font-size:12px;color:var(--sub)">' + (meta.exchangeName || '') + ' · ' + currency + '</span>';
+
+  // Key metrics
+  var cls = change >= 0 ? 'up' : 'down';
+  var sign = change >= 0 ? '+' : '';
+  var pe = summary.trailingPE?.raw || stats.trailingPE?.raw || null;
+  var pb = price.priceToBook?.raw || stats.priceToBook?.raw || null;
+  var roe = fin.returnOnEquity?.raw ? (fin.returnOnEquity.raw * 100) : null;
+  var de = fin.debtToEquity?.raw ? (fin.debtToEquity.raw) : null;
+  var opMargin = fin.operatingMargins?.raw ? (fin.operatingMargins.raw * 100) : null;
+  var fcf = fin.freeCashflow?.raw ? fin.freeCashflow.raw : null;
+  var revGrowth = fin.revenueGrowth?.raw ? (fin.revenueGrowth.raw * 100) : null;
+  var marketCap = price.marketCap?.raw || price.marketCap || 0;
+  var divYield = summary.dividendYield?.raw ? (summary.dividendYield.raw * 100) : null;
+  var beta = summary.beta?.raw || null;
+  var fiftyTwoHigh = summary.fiftyTwoWeekHigh?.raw || 0;
+  var fiftyTwoLow = summary.fiftyTwoWeekLow?.raw || 0;
+
+  var html = '';
+  html += '<div class="metric"><div class="label">最新价格</div><div class="value">' + csign + formatNum(marketPrice) + '</div></div>';
+  html += '<div class="metric"><div class="label">涨跌</div><div class="value ' + cls + '">' + sign + formatNum(change) + ' (' + sign + changePct.toFixed(2) + '%)</div></div>';
+  if (pe) html += '<div class="metric"><div class="label">市盈率 P/E</div><div class="value">' + pe.toFixed(2) + '</div></div>';
+  if (pb) html += '<div class="metric"><div class="label">市净率 P/B</div><div class="value">' + pb.toFixed(2) + '</div></div>';
+  if (roe !== null) html += '<div class="metric"><div class="label">ROE</div><div class="value">' + roe.toFixed(2) + '%</div></div>';
+  if (de !== null) html += '<div class="metric"><div class="label">负债/权益 D/E</div><div class="value">' + de.toFixed(2) + '</div></div>';
+  if (opMargin !== null) html += '<div class="metric"><div class="label">营业利润率</div><div class="value">' + opMargin.toFixed(2) + '%</div></div>';
+  if (revGrowth !== null) html += '<div class="metric"><div class="label">营收增长率</div><div class="value">' + (revGrowth >= 0 ? '+' : '') + revGrowth.toFixed(2) + '%</div></div>';
+  if (marketCap) html += '<div class="metric"><div class="label">市值</div><div class="value" style="font-size:16px">' + formatCap(marketCap) + '</div></div>';
+  if (divYield !== null) html += '<div class="metric"><div class="label">股息率</div><div class="value">' + divYield.toFixed(2) + '%</div></div>';
+  if (beta) html += '<div class="metric"><div class="label">Beta</div><div class="value">' + beta.toFixed(2) + '</div></div>';
+  html += '<div class="metric"><div class="label">52周高</div><div class="value" style="font-size:16px">' + csign + formatNum(fiftyTwoHigh) + '</div></div>';
+  html += '<div class="metric"><div class="label">52周低</div><div class="value" style="font-size:16px">' + csign + formatNum(fiftyTwoLow) + '</div></div>';
+  document.getElementById('globalMetrics').innerHTML = html;
+
+  // Set DCF inputs
+  document.getElementById('dcfPrice').value = marketPrice.toFixed(2);
+  if (fcf) {
+    var sharesOut = marketCap / marketPrice;
+    var fcfPerShare = sharesOut > 0 ? fcf / sharesOut : 0;
+    document.getElementById('dcfFCF').value = fcfPerShare.toFixed(2);
+  }
+
+  // Buffett Score
+  renderBuffettScore(roe, de, pe, pb, opMargin, revGrowth, fcf);
+
+  // Munger Checklist
+  renderMungerChecklist(opMargin, roe, de, pe, stats, fin);
+
+  // Draw chart
+  renderGlobalChart(c, symbol);
+}
+
+function renderBuffettScore(roe, de, pe, pb, opMargin, revGrowth, fcf) {
+  var score = 0;
+  var maxScore = 70; // 7 criteria, 10 pts each
+  var items = [];
+
+  // 1. ROE > 15%
+  if (roe !== null) {
+    var roeScore = roe >= 20 ? 10 : (roe >= 15 ? 8 : (roe >= 10 ? 5 : 2));
+    if (roe < 0) roeScore = 0;
+    score += roeScore;
+    items.push({label: 'ROE ' + roe.toFixed(1) + '%', val: roeScore >= 8 ? 'good' : (roeScore >= 5 ? 'warn' : 'bad'), detail: '巴菲特核心指标：>15%优秀，>20%极佳。高ROE + 低负债 = 真正的优质公司。'});
+  }
+
+  // 2. Debt/Equity < 0.5
+  if (de !== null) {
+    var deScore = de < 0.3 ? 10 : (de < 0.5 ? 8 : (de < 1.0 ? 5 : (de < 2.0 ? 3 : 0)));
+    score += deScore;
+    items.push({label: '负债权益比 ' + de.toFixed(2), val: deScore >= 8 ? 'good' : (deScore >= 5 ? 'warn' : 'bad'), detail: '巴菲特厌恶高杠杆。D/E < 0.5健康，>2.0危险。金融行业除外。'});
+  }
+
+  // 3. P/E reasonable
+  if (pe !== null && pe > 0) {
+    var peScore = pe < 15 ? 10 : (pe < 20 ? 8 : (pe < 25 ? 6 : (pe < 30 ? 4 : 2)));
+    score += peScore;
+    items.push({label: '市盈率 P/E ' + pe.toFixed(1), val: peScore >= 8 ? 'good' : (peScore >= 6 ? 'warn' : 'bad'), detail: '巴菲特偏好12-20倍PE。但强调"好公司比好价格更重要"。'});
+  }
+
+  // 4. P/B reasonable
+  if (pb !== null && pb > 0) {
+    var pbScore = pb < 3 ? 10 : (pb < 5 ? 7 : (pb < 8 ? 4 : 2));
+    score += pbScore;
+    items.push({label: '市净率 P/B ' + pb.toFixed(1), val: pbScore >= 7 ? 'good' : (pbScore >= 4 ? 'warn' : 'bad'), detail: 'P/B < 3理想。但轻资产公司（科技）P/B偏高正常。'});
+  }
+
+  // 5. Operating Margin > 15%
+  if (opMargin !== null) {
+    var omScore = opMargin > 25 ? 10 : (opMargin > 15 ? 8 : (opMargin > 10 ? 5 : 2));
+    if (opMargin < 0) omScore = 0;
+    score += omScore;
+    items.push({label: '营业利润率 ' + opMargin.toFixed(1) + '%', val: omScore >= 8 ? 'good' : (omScore >= 5 ? 'warn' : 'bad'), detail: '高利润率 = 强护城河。持续高利润率说明有定价权。'});
+  }
+
+  // 6. Revenue Growth positive
+  if (revGrowth !== null) {
+    var rgScore = revGrowth > 20 ? 10 : (revGrowth > 10 ? 8 : (revGrowth > 5 ? 5 : (revGrowth > 0 ? 3 : 1)));
+    if (revGrowth < -10) rgScore = 0;
+    score += rgScore;
+    items.push({label: '营收增长 ' + (revGrowth >= 0 ? '+' : '') + revGrowth.toFixed(1) + '%', val: rgScore >= 8 ? 'good' : (rgScore >= 5 ? 'warn' : 'bad'), detail: '持续营收增长是护城河的体现。巴菲特喜欢稳定增长而非大起大落。'});
+  }
+
+  // 7. FCF positive
+  if (fcf !== null) {
+    var fcfScore = fcf > 0 ? 10 : 3;
+    score += fcfScore;
+    items.push({label: '自由现金流', val: fcfScore >= 8 ? 'good' : 'bad', detail: '正自由现金流 = 利润真实。巴菲特："现金是事实，利润是观点。"'});
+  }
+
+  // Normalize to 0-100
+  var pct = Math.round(score / maxScore * 100);
+  var cls = pct >= 75 ? 'excellent' : (pct >= 55 ? 'good' : (pct >= 35 ? 'fair' : 'poor'));
+  var label = pct >= 75 ? '优秀' : (pct >= 55 ? '良好' : (pct >= 35 ? '一般' : '需谨慎'));
+
+  var scoreHtml = '<div class="score-circle ' + cls + '"><div class="sc">' + pct + '</div><div class="sl">' + label + '</div></div>';
+  document.getElementById('buffettScore').innerHTML = scoreHtml;
+
+  var checklistHtml = '';
+  items.forEach(function(item) {
+    checklistHtml += '<div class="value-metric-row"><div><span class="vlabel">' + item.label + '</span><br><span style="font-size:11px;color:#94a3b8">' + item.detail + '</span></div><span class="vval ' + item.val + '">' + (item.val === 'good' ? '✅' : (item.val === 'warn' ? '⚠️' : '❌')) + '</span></div>';
+  });
+  document.getElementById('buffettChecklist').innerHTML = checklistHtml;
+}
+
+function renderMungerChecklist(opMargin, roe, de, pe, stats, fin) {
+  var items = [];
+  var score = 0;
+  var total = 50;
+
+  // 1. Business Moat (from margin consistency)
+  if (opMargin !== null) {
+    var moatScore = opMargin > 20 ? 10 : (opMargin > 10 ? 7 : (opMargin > 5 ? 4 : 2));
+    if (opMargin < 0) moatScore = 0;
+    score += moatScore;
+    items.push({icon: moatScore >= 7 ? '✅' : (moatScore >= 4 ? '⚠️' : '❌'), label: '护城河宽度', detail: '芒格："我们只在有巨大护城河的企业中投资。" 高利润率+持续稳定=宽护城河。'});
+  }
+
+  // 2. Consistent ROE
+  if (roe !== null) {
+    var conScore = roe > 15 ? 10 : (roe > 10 ? 7 : (roe > 5 ? 4 : 2));
+    score += conScore;
+    items.push({icon: conScore >= 7 ? '✅' : (conScore >= 4 ? '⚠️' : '❌'), label: '资本回报持续性', detail: '长期稳定高ROE > 短期爆发。芒格改变巴菲特的关键：买好公司长期持有。'});
+  }
+
+  // 3. Financial Strength
+  if (de !== null) {
+    var fsScore = de < 0.5 ? 10 : (de < 1.0 ? 7 : (de < 2.0 ? 4 : 2));
+    score += fsScore;
+    items.push({icon: fsScore >= 7 ? '✅' : (fsScore >= 4 ? '⚠️' : '❌'), label: '财务稳健度', detail: '低负债企业能穿越周期。芒格讨厌过度杠杆："杠杆和酒精一样，放大了问题。"'});
+  }
+
+  // 4. Reasonable Price
+  if (pe !== null && pe > 0) {
+    var rpScore = pe < 20 ? 10 : (pe < 25 ? 7 : (pe < 35 ? 4 : 2));
+    score += rpScore;
+    items.push({icon: rpScore >= 7 ? '✅' : (rpScore >= 4 ? '⚠️' : '❌'), label: '价格合理性', detail: '"以合理价格买入伟大公司"——芒格的核心理念。不追求极度便宜，但要避免高估。'});
+  }
+
+  // 5. Long-term Runway
+  var runwayScore = (fin && fin.revenueGrowth && fin.revenueGrowth.raw > 0.05) ? 10 : 6;
+  score += runwayScore;
+  items.push({icon: runwayScore >= 7 ? '✅' : '⚠️', label: '长期成长空间', detail: '芒格看10年以上的增长跑道。好的生意模式能持续扩大规模而无需大量资本投入。'});
+
+  var pct = Math.round(score / total * 100);
+  var cls = pct >= 75 ? 'excellent' : (pct >= 55 ? 'good' : (pct >= 35 ? 'fair' : 'poor'));
+  var label = pct >= 75 ? '顶级质量' : (pct >= 55 ? '优质' : (pct >= 35 ? '中规中矩' : '存疑'));
+
+  var html = '<div class="score-circle ' + cls + '"><div class="sc">' + pct + '</div><div class="sl">' + label + '</div></div>';
+  items.forEach(function(item) {
+    html += '<div class="checklist-item"><span class="icon">' + item.icon + '</span><div><strong>' + item.label + '</strong><br><span style="font-size:11px;color:#94a3b8">' + item.detail + '</span></div></div>';
+  });
+  document.getElementById('mungerChecklist').innerHTML = html;
+}
+
+function runDCF() {
+  var fcf = parseFloat(document.getElementById('dcfFCF').value) || 0;
+  var growth = parseFloat(document.getElementById('dcfGrowth').value) / 100 || 0.1;
+  var terminal = parseFloat(document.getElementById('dcfTerminal').value) / 100 || 0.03;
+  var discount = parseFloat(document.getElementById('dcfDiscount').value) / 100 || 0.1;
+  var price = parseFloat(document.getElementById('dcfPrice').value) || 0;
+
+  if (fcf <= 0) {
+    document.getElementById('dcfResult').innerHTML = '<div style="color:#ef4444">需要有效的自由现金流数据</div>';
+    return;
+  }
+
+  // 5-year DCF projection + terminal value
+  var projections = [];
+  var cf = fcf;
+  var pvSum = 0;
+  for (var y = 1; y <= 5; y++) {
+    cf = cf * (1 + growth);
+    var pv = cf / Math.pow(1 + discount, y);
+    pvSum += pv;
+    projections.push({year: y, cf: cf, pv: pv});
+  }
+
+  // Terminal value (perpetuity growth)
+  var terminalCF = cf * (1 + terminal);
+  var terminalValue = terminalCF / (discount - terminal);
+  var terminalPV = terminalValue / Math.pow(1 + discount, 5);
+
+  var intrinsicValue = pvSum + terminalPV;
+  var marginOfSafety = ((intrinsicValue - price) / intrinsicValue * 100);
+  var upside = ((intrinsicValue - price) / price * 100);
+
+  var html = '';
+  html += '<div style="margin-bottom:12px">';
+  html += '<div style="font-size:28px;font-weight:700;color:' + (marginOfSafety > 0 ? '#166534' : '#dc2626') + '">$' + intrinsicValue.toFixed(2) + '</div>';
+  html += '<div style="font-size:12px;color:var(--sub)">估算内在价值 vs 当前价格 $' + price.toFixed(2) + '</div>';
+  html += '</div>';
+
+  html += '<div style="line-height:2;font-size:13px">';
+  html += '安全边际：<strong style="color:' + (marginOfSafety > 30 ? '#166534' : (marginOfSafety > 0 ? '#f59e0b' : '#dc2626')) + '">' + (marginOfSafety >= 0 ? '+' : '') + marginOfSafety.toFixed(1) + '%</strong><br>';
+  html += '上升空间：<strong>' + (upside >= 0 ? '+' : '') + upside.toFixed(1) + '%</strong><br>';
+  html += '折现现金流总和：$' + pvSum.toFixed(2) + '<br>';
+  html += '终值现值：$' + terminalPV.toFixed(2);
+  html += '</div>';
+
+  html += '<div style="margin-top:12px;font-size:11px;color:var(--sub)">';
+  if (marginOfSafety > 30) html += '🟢 显著低估 — 符合巴菲特"以显著折扣买入"原则';
+  else if (marginOfSafety > 0) html += '🟡 轻微低估 — 有一定安全边际，但不够宽';
+  else if (marginOfSafety > -20) html += '🟠 合理偏高 — 市场定价较充分，耐心等待更好时机';
+  else html += '🔴 显著高估 — 当前价格远超内在价值，建议观望';
+  html += '</div>';
+
+  document.getElementById('dcfResult').innerHTML = html;
+}
+
+function renderGlobalChart(c, symbol) {
+  var ctx = document.getElementById('globalChart').getContext('2d');
+  if (globalChartInstance) globalChartInstance.destroy();
+
+  var timestamps = c.timestamp || [];
+  var quotes = c.indicators?.quote?.[0];
+  if (!quotes || !timestamps.length) return;
+
+  var closes = quotes.close || [];
+  // Sample points
+  var step = Math.max(1, Math.floor(timestamps.length / 200));
+  var labels = [], values = [];
+  for (var i = 0; i < timestamps.length; i += step) {
+    labels.push(new Date(timestamps[i] * 1000).toLocaleDateString('zh-CN', {month:'short',day:'numeric'}));
+    values.push(closes[i]);
+  }
+
+  var color = values.length > 1 && values[values.length - 1] >= values[0] ? '#22c55e' : '#ef4444';
+
+  globalChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: symbol,
+        data: values,
+        borderColor: color,
+        backgroundColor: color.replace(')','').replace('rgb','rgba').replace('(','(') + ',0.1)',
+        fill: true,
+        borderWidth: 1.5,
+        pointRadius: 0,
+        tension: 0.2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      interaction: { intersect: false, mode: 'index' },
+      scales: {
+        x: { ticks: { maxTicksLimit: 10, maxRotation: 0 }, grid: { display: false } },
+        y: { ticks: { callback: function(v) { return '$' + v.toFixed(2); } } }
+      }
+    }
+  });
+}
+
+function formatNum(n) {
+  if (n === null || n === undefined) return '--';
+  if (Math.abs(n) < 1) return n.toFixed(4);
+  if (Math.abs(n) < 100) return n.toFixed(2);
+  if (Math.abs(n) < 10000) return n.toFixed(2);
+  return n.toLocaleString('en-US', {maximumFractionDigits: 2});
+}
+
+function formatCap(n) {
+  if (!n) return '--';
+  if (n >= 1e12) return (n / 1e12).toFixed(2) + 'T';
+  if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+  return n.toLocaleString();
+}
+
+// ====== 工具函数 ======
+function copyFund(code, btn) {
+  navigator.clipboard.writeText(code).then(function() {
+    if (btn) {
+      btn.classList.add('copied');
+      btn.innerHTML = '✅ ' + code;
+      setTimeout(function() {
+        btn.classList.remove('copied');
+        btn.innerHTML = '📋 ' + code;
+      }, 2000);
+    }
+    toast('📋 已复制：' + code + ' → 打开支付宝搜索栏粘贴');
+  }).catch(function() {
+    // Fallback
+    var ta = document.createElement('textarea');
+    ta.value = code;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('📋 已复制：' + code + ' → 打开支付宝粘贴');
+  });
+}
+
+// ====== 政策更新 ======
+var POLICY_UPDATES = [];
+
+function checkPolicyFreshness() {
+  var lastUpdate = document.getElementById('policyUpdateTime');
+  if (!lastUpdate) return;
+  var d = new Date(lastUpdate.textContent.trim());
+  var now = new Date();
+  var days = Math.floor((now - d) / (1000 * 60 * 60 * 24));
+  if (days > 14) {
+    toast('⚠️ 政策数据已超过14天未更新，建议提醒 Claude 刷新政策信息');
+  } else if (days > 7) {
+    toast('📡 政策数据 ' + days + ' 天前更新，即将需要刷新');
+  } else {
+    toast('✅ 政策数据' + days + '天前更新，仍在有效期内');
+  }
+}
+
+// 处理 Claude 通过 Edit 注入的政策更新
+(function processPolicyUpdates() {
+  if (typeof PENDING_POLICY_UPDATES === 'undefined' || !PENDING_POLICY_UPDATES || !PENDING_POLICY_UPDATES.length) return;
+  // Claude can update the policyUpdateTime element via DOM edits
+  console.log('📡 检测到政策更新数据');
+})();
+
+// ====== 截图导入 ======
+// 粘贴事件 — 截屏
+document.addEventListener('paste', function(e) {
+  // Only process if we're in the portfolio tab
+  var panel = document.getElementById('watchlist');
+  if (!panel || !panel.classList.contains('active')) return;
+
+  var items = e.clipboardData && e.clipboardData.items;
+  if (!items) return;
+
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].type.indexOf('image') !== -1) {
+      e.preventDefault();
+      var blob = items[i].getAsFile();
+      showScreenshotPreview(blob);
+      toast('📸 截图已粘贴！发送给 Claude，Claude 读图后自动录入持仓');
+      return;
+    }
+  }
+});
+
+function handleScreenshotFile(input) {
+  var file = input.files[0];
+  if (file) showScreenshotPreview(file);
+}
+
+function showScreenshotPreview(blob) {
+  var url = URL.createObjectURL(blob);
+  var img = document.getElementById('screenshotPreview');
+  var placeholder = document.getElementById('screenshotPlaceholder');
+  img.src = url;
+  img.style.display = 'block';
+  placeholder.style.display = 'none';
+}
+
+// 文本解析导入
+function importFromText() {
+  var text = document.getElementById('importText').value.trim();
+  if (!text) { toast('请粘贴基金数据'); return; }
+
+  var lines = text.split(/[\n\r]+/).filter(function(l) { return l.trim(); });
+  var list = getPortfolio();
+  var existingCodes = {};
+  list.forEach(function(f) { existingCodes[f.code] = true; });
+  var added = 0;
+  var errors = [];
+
+  lines.forEach(function(line) {
+    var parts = line.trim().split(/[\s,，\t]+/);
+    if (parts.length < 1) return;
+
+    var code = parts[0].replace(/[^0-9]/g, '');
+    if (code.length !== 6) {
+      errors.push('无效代码: ' + parts[0]);
+      return;
+    }
+
+    var amount = parts.length >= 2 ? parseFloat(parts[1].replace(/[^0-9.]/g, '')) : 0;
+    if (isNaN(amount) || amount <= 0) amount = 0;
+
+    if (existingCodes[code]) {
+      var existing = list.find(function(f) { return f.code === code; });
+      if (existing && amount > 0) {
+        existing.amount = amount;
+        added++;
+      }
+    } else {
+      list.push({code: code, name: '', amount: amount});
+      existingCodes[code] = true;
+      added++;
+    }
+  });
+
+  if (added > 0) {
+    savePortfolio(list);
+    document.getElementById('importText').value = '';
+    refreshPortfolio();
+    toast('✅ 已导入 ' + added + ' 只基金，刷新中...' + (errors.length > 0 ? '（' + errors.length + ' 条异常）' : ''));
+  } else {
+    toast('未能解析有效数据，请检查格式：代码 金额（空格分隔，一行一个）');
+  }
+}
+
+// ====== 初始化 ======
+document.addEventListener('DOMContentLoaded', function() {
+  // 处理 Claude 注入的待导入持仓
+  (function processPendingPortfolio() {
+    if (!PENDING_PORTFOLIO.length) return;
+    var list = getPortfolio();
+    var existingCodes = {};
+    list.forEach(function(f) { existingCodes[f.code] = true; });
+    var added = 0;
+    PENDING_PORTFOLIO.forEach(function(item) {
+      if (!item.code) return;
+      if (existingCodes[item.code]) {
+        // Update amount if existing
+        var existing = list.find(function(f) { return f.code === item.code; });
+        if (existing && item.amount) { existing.amount = item.amount; added++; }
+      } else {
+        list.push({code: item.code, name: item.name || '', amount: item.amount || 0});
+        existingCodes[item.code] = true;
+        added++;
+      }
+    });
+    if (added > 0) {
+      savePortfolio(list);
+      console.log('✅ PENDING_PORTFOLIO: 已导入 ' + added + ' 条持仓');
+    }
+  })();
+
+  loadRanking();
+  renderPortfolio();
+});
+</script>
+</body>
+</html>
