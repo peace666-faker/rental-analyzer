@@ -257,6 +257,8 @@ body{font-family:-apple-system,'Microsoft YaHei',sans-serif;background:#f5f6f8;c
 .completed-toggle .toggle-arrow{font-size:11px;color:#aaa;transition:transform 0.15s}
 .edit-input{width:100%;padding:4px 8px;border:1px solid #1890ff;border-radius:4px;font-size:13px;font-family:inherit}
 .edit-input:focus{outline:none;box-shadow:0 0 0 2px rgba(24,144,255,0.2)}
+.step-edit-row:hover{background:#f0f4ff!important;border-color:#bfdbfe!important}
+.step-edit-row:active{cursor:grabbing!important}
 .backup-bar{display:flex;gap:6px;margin-bottom:16px;justify-content:flex-end}
 .backup-btn{padding:4px 10px;border-radius:4px;border:1px solid #e0e0e0;background:#fff;cursor:pointer;font-size:11px;color:#aaa;font-family:inherit;transition:all 0.12s}
 .backup-btn:hover{border-color:#1890ff;color:#1890ff}
@@ -507,6 +509,132 @@ const STEPS = [
   { key:'settlement', label:'结算' },
 ];
 
+
+// ── Step editor ──
+function openStepEditor(id){
+  var data=getData();
+  var s=data.shipments.find(function(x){return x.id===id});
+  if(!s)return;
+  var steps=getSteps(s);
+  var html="<h3>\u2710\uFE0F \u7f16\u8f91\u6d41\u7a0b \u2014 "+s.mawb+"</h3>";
+  html+="<div style=\"font-size:12px;color:#888;margin-bottom:12px;\">\u62d6\u62fd\u884c\u53ef\u6392\u5e8f | \u53ef\u5220\u9664/\u6dfb\u52a0/\u91cd\u7f6e</div>";
+  html+="<div id=\"stepEditList\" style=\"max-height:320px;overflow-y:auto;margin-bottom:12px;\">";
+  steps.forEach(function(st,i){
+    html+="<div class=\"step-edit-row\" draggable=\"true\" data-key=\""+st.key+"\" style=\"display:flex;align-items:center;gap:8px;padding:7px 8px;margin:3px 0;background:#fafafa;border:1px solid #eee;border-radius:6px;cursor:grab;user-select:none\">";
+    html+="<span style=\"cursor:grab;color:#ccc;font-size:14px;\">\u22EE\u22EE</span>";
+    html+="<span style=\"font-size:13px;flex:1;\">"+(i+1)+". "+st.label+"</span>";
+    html+="<button onclick=\"event.stopPropagation();removeStep(\x27"+id+"\x27,\x27"+st.key+"\x27)\" style=\"background:none;border:none;color:#ccc;cursor:pointer;font-size:16px;padding:2px 6px;\" title=\"\u5220\u9664\u6b64\u6b65\u9aa4\">\u2715</button>";
+    html+="</div>";
+  });
+  html+="</div>";
+  html+="<div style=\"display:flex;gap:6px;margin-bottom:12px;\">";
+  html+="<input id=\"newStepLabel\" placeholder=\"\u65b0\u6b65\u9aa4\u540d\u79f0\" style=\"flex:1;padding:7px 10px;border:1px solid #e0e0e0;border-radius:6px;font-size:13px;font-family:inherit\" onkeydown=\"if(event.key===\x27Enter\x27)addCustomStep(\x27"+id+"\x27)\">";
+  html+="<button class=\"btn blue\" onclick=\"addCustomStep(\x27"+id+"\x27)\">\uFF0B \u6dfb\u52a0</button>";
+  html+="</div>";
+  html+="<div style=\"display:flex;gap:6px;\">";
+  html+="<button class=\"btn\" onclick=\"resetSteps(\x27"+id+"\x27)\" style=\"font-size:11px;color:#888;\">\uD83D\uDD04 \u6062\u590d\u9ed8\u8ba4</button>";
+  html+="<span style=\"flex:1;\"></span>";
+  html+="<button class=\"btn\" onclick=\"closeAddModal()\">\u5173\u95ed</button>";
+  html+="</div>";
+  document.getElementById("addModal").querySelector(".modal").innerHTML=html;
+  document.getElementById("addModal").classList.add("show");
+  setupStepDrag(id);
+}
+function setupStepDrag(id){
+  var list=document.getElementById("stepEditList");
+  if(!list)return;
+  var dragRow=null;
+  list.querySelectorAll(".step-edit-row").forEach(function(row){
+    row.addEventListener("dragstart",function(e){dragRow=row;row.style.opacity="0.5";e.dataTransfer.effectAllowed="move";});
+    row.addEventListener("dragend",function(e){row.style.opacity="1";list.querySelectorAll(".step-edit-row").forEach(function(r){r.style.borderTop="";});dragRow=null;});
+    row.addEventListener("dragover",function(e){e.preventDefault();e.dataTransfer.dropEffect="move";});
+    row.addEventListener("dragenter",function(e){e.preventDefault();if(row!==dragRow)row.style.borderTop="2px solid #8b5cf6";});
+    row.addEventListener("dragleave",function(e){row.style.borderTop="";});
+    row.addEventListener("drop",function(e){e.preventDefault();row.style.borderTop="";if(row===dragRow)return;
+      var rows=[].slice.call(list.querySelectorAll(".step-edit-row"));
+      var fi=rows.indexOf(dragRow),ti=rows.indexOf(row);
+      if(fi<0||ti<0)return;
+      if(fi<ti)list.insertBefore(dragRow,row.nextSibling);
+      else list.insertBefore(dragRow,row);
+      reindexSteps(id);
+    });
+  });
+}
+function reindexSteps(id){
+  var rows=document.querySelectorAll("#stepEditList .step-edit-row");
+  rows.forEach(function(r,i){
+    r.querySelector("span:nth-child(2)").textContent=(i+1)+". "+r.querySelector("span:nth-child(2)").textContent.replace(/^\\d+\\.\\s/,"");
+    r.dataset.idx=i;
+  });
+  applyStepOrder(id);
+}
+function applyStepOrder(id){
+  var rows=document.querySelectorAll("#stepEditList .step-edit-row");
+  var order=[].map.call(rows,function(r){return r.dataset.key});
+  var data=getData();
+  var s=data.shipments.find(function(x){return x.id===id});
+  if(!s)return;
+  var oldConfig=s._stepConfig?s._stepConfig.slice():STEPS.map(function(st){return {key:st.key,label:st.label}});
+  s._stepConfig=order.map(function(key){
+    var existing=oldConfig.find(function(sc){return sc.key===key});
+    return existing||{key:key,label:key};
+  });
+  saveData(data);
+  order.forEach(function(key){ if(!(key in s.steps)) s.steps[key]=false; });
+}
+function addCustomStep(id){
+  var input=document.getElementById("newStepLabel");
+  var label=(input?input.value:"").trim();
+  if(!label)return;
+  var key="cust_"+Date.now();
+  var data3=getData();
+  var s3=data3.shipments.find(function(x){return x.id===id});
+  if(s3&&!(key in s3.steps)) s3.steps[key]=false;
+  saveData(data3);
+  var list=document.getElementById("stepEditList");
+  var rows=list.querySelectorAll(".step-edit-row");
+  var i=rows.length;
+  var html="<div class=\"step-edit-row\" draggable=\"true\" data-key=\""+key+"\" style=\"display:flex;align-items:center;gap:8px;padding:7px 8px;margin:3px 0;background:#fafbfa;border:1px solid #d4edda;border-radius:6px;cursor:grab;user-select:none\">";
+  html+="<span style=\"cursor:grab;color:#ccc;font-size:14px;\">\u22EE\u22EE</span>";
+  html+="<span style=\"font-size:13px;flex:1;\">"+(i+1)+". "+label+" <span style=\"font-size:10px;color:#52c41a;\">(\u81ea\u5b9a\u4e49)</span></span>";
+  html+="<button onclick=\"event.stopPropagation();removeStep(\x27"+id+"\x27,\x27"+key+"\x27)\" style=\"background:none;border:none;color:#ccc;cursor:pointer;font-size:16px;padding:2px 6px;\" title=\"\u5220\u9664\u6b64\u6b65\u9aa4\">\u2715</button>";
+  html+="</div>";
+  list.insertAdjacentHTML("beforeend",html);
+  setupStepDrag(id);
+  if(input)input.value="";
+  applyStepOrder(id);
+}
+function removeStep(id,key){
+  var row=document.querySelector("#stepEditList .step-edit-row[data-key=\""+key+"\"]");
+  if(row)row.remove();
+  reindexSteps(id);
+  applyStepOrder(id);
+}
+function resetSteps(id){
+  var data=getData();
+  var s=data.shipments.find(function(x){return x.id===id});
+  if(!s)return;
+  delete s._stepConfig;
+  saveData(data);
+  closeAddModal();
+  renderAll();
+  toast("\uD83D\uDD04 \u6d41\u7a0b\u5df2\u6062\u590d\u9ed8\u8ba4");
+}
+
+// ── Get effective steps for a shipment (supports custom config) ──
+function getSteps(s){
+  if(s._stepConfig && s._stepConfig.length){
+    return s._stepConfig.map(function(sc){
+      var def = STEPS.find(function(d){return d.key===sc.key});
+      return {key:sc.key, label:sc.label||(def?def.label:sc.key)};
+    });
+  }
+  return STEPS;
+}
+function stepsAllDone(s){
+  return getSteps(s).every(function(st){return s.steps[st.key]});
+}
+
 const DATA_VERSION = 2; // 升级此值 + 添加迁移逻辑即可安全更新，不影响localStorage
 
 function migrateData(data, fromVersion){
@@ -542,7 +670,7 @@ function getData(){
   if((data._version||0) < DATA_VERSION) data = migrateData(data, data._version||0);
   return data;
 }
-function saveData(d){ localStorage.setItem('air-export-data', JSON.stringify(d)); }
+function saveData(d){ const s=JSON.stringify(d); localStorage.setItem('air-export-data', s); try{localStorage.setItem('air-export-data-bak', s);}catch(e){} }
 function getTodayKey(){ return new Date().toISOString().slice(0,10); }
 function getWeekKey(){
   const d = new Date();
@@ -959,6 +1087,19 @@ function etdSort(a,b){
   return new Date(a.etd) - new Date(b.etd);
 }
 
+// ── 一键完成全部步骤 ──
+function completeAllSteps(id){
+  const data=getData();
+  const s=data.shipments.find(x=>x.id===id);
+  if(!s)return;
+  getSteps(s).forEach(st=>{s.steps[st.key]=true});
+  s.status='completed';
+  s._completedDate=getTodayKey();
+  saveData(data);renderAll();
+  addPetXp(40);
+  toast('⚡ 一键完成：'+s.mawb);
+}
+
 // ── 渲染 ──
 function renderAll(){
   const data = getData();
@@ -1071,7 +1212,8 @@ function renderCard(s, isActive){
   const etdCls = ['etd-badge', isToday(s)?'today':'', hrs>2?'past':''].filter(Boolean).join(' ');
 
   // All steps in unified grid (7 steps same size)
-  const stepsHtml = STEPS.map(st=>{
+  const stepList = getSteps(s);
+  const stepsHtml = stepList.map(st=>{
     const checked = s.steps[st.key] || false;
     const isPreAlert = st.key === 'preAlert';
     let extraCls = '';
@@ -1090,10 +1232,14 @@ function renderCard(s, isActive){
   // Actions
   let actionsHtml = '';
   if(isActive){
+    const allDone = stepsAllDone(s);
+    const quickBtn = allDone ? '' : `<button class="btn" style="color:#7c3aed;border-color:#c4b5fd;background:#faf5ff" onclick="completeAllSteps('${s.id}')">⚡ 一键完成</button>`;
     actionsHtml = `
       <div class="card-actions">
         <button class="btn" onclick="editShipment('${s.id}')">✏️ 编辑</button> ${!s.steps.preAlert ? `<button class="btn blue" onclick="showPreAlert('${s.id}')">📋 生成预报</button>` : ''}
+        ${quickBtn}
         <button class="btn green" onclick="completeShipment('${s.id}')">✅ 完成</button>
+        <button class="btn" style="color:#8b5cf6;border-color:#c4b5fd" onclick="openStepEditor('${s.id}')">✏️ 流程</button>
         <button class="btn danger" onclick="deleteShipment('${s.id}')">删除</button>
       </div>`;
   } else {
@@ -1131,7 +1277,7 @@ function toggleStep(id, stepKey){
     toast('✅ 预报已标记为已发');
   }
   // Auto-complete if all done
-  if(STEPS.every(st=>s.steps[st.key])){
+  if(stepsAllDone(s)){
     s.status = 'completed'; s._completedDate = getTodayKey();
     addPetXp(30); // 全部完成 +30 XP
     toast('🎉 全部完成');
@@ -1166,10 +1312,13 @@ function deleteShipment(id){
 
 // ── 搜索 ──
 function matchShipment(s, kw){
+  const etdStr = s.etd ? new Date(s.etd).toLocaleDateString('zh-CN',{month:'short',day:'numeric'}) : '';
   return (s.mawb||'').toLowerCase().includes(kw) ||
          (s.route||'').toLowerCase().includes(kw) ||
          (s.flight||'').toLowerCase().includes(kw) ||
-         (s.notes||'').toLowerCase().includes(kw);
+         (s.notes||'').toLowerCase().includes(kw) ||
+         (s.etd||'').includes(kw) ||
+         etdStr.includes(kw);
 }
 function doSearch(){ renderAll(); }
 
