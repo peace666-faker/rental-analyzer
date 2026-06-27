@@ -1303,7 +1303,10 @@ function reopenShipment(id){
   toast('🔄 已重新打开');
 }
 function deleteShipment(id){
-  if(!confirm('确定删除？')) return;
+  if(!window.confirm('确定删除？')){
+    var ok=window.top.confirm ? window.top.confirm('确定删除？') : true;
+    if(!ok) return;
+  }
   const data = getData();
   data.shipments = data.shipments.filter(s=>s.id!==id);
   saveData(data); renderAll();
@@ -1547,7 +1550,10 @@ function deleteRecurring(id){
   const data = getData();
   const rt = data.recurringTasks.find(r=>r.id===id);
   if(!rt) return;
-  if(!confirm('删除「'+rt.label+'」？')) return;
+  if(!window.confirm('删除「'+rt.label+'」？')){
+    var ok2=window.top.confirm ? window.top.confirm('删除「'+rt.label+'」？') : true;
+    if(!ok2) return;
+  }
   data.recurringTasks = data.recurringTasks.filter(r=>r.id!==id);
   saveData(data); renderAll();
 }
